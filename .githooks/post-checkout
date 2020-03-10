@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+printf '\npost-checkout hook\n\n'
+
+git clean -fdX
