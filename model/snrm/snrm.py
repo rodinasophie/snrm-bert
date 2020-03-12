@@ -26,3 +26,8 @@ class SNRM:
     def save(self, filename):
         print("Saving model...")
         pass
+
+   
+
+class SNRMAutoEncoder(SNRM):
+    pass
