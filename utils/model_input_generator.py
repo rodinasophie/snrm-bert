@@ -58,14 +58,18 @@ class ModelInputGenerator:
         self.offset += size
         return batch
 
+    """
+        Returns the documents batch
+    """
+
     def generate_docs(self, size=256):
-        batch = []
+        doc_ids = []
+        docs = []
         for i in range(self.doc_offset, self.doc_offset + size):
-            batch.append(
-                (self.df_docs.loc[i]["id_right"], self.df_docs.loc[i]["text_right"])
-            )
+            doc_ids.append(self.df_docs.loc[i]["id_right"])
+            docs.append(self.df_docs.loc[i]["text_right"])
         self.offset += size
-        return batch
+        return doc_ids, docs
 
     def reset_doc(self, val=0):
         self.doc_offset = val

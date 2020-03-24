@@ -86,7 +86,8 @@ class SNRM:
     def train(self, batch):
         running_loss = 0.0
         out_batch = self.__build_emb_input(batch, self.qmax_len, self.dmax_len)
-        for i in range(out_batch.shape[0]):
+        batch_size = out_batch.shape[0]
+        for i in range(batch_size):
             # get the inputs; data is a list of [inputs, labels]
             query, d1, d2 = out_batch[i]
 
@@ -111,11 +112,9 @@ class SNRM:
 
             # print statistics
             running_loss += loss.item()
-            if i % 200 == 199:  # print every 200 mini-batches
-                print("[%5d] loss: %.3f" % (i + 1, running_loss / 200))
-                running_loss = 0.0
 
         print("Finished Training")
+        return running_loss / batch_size, 0.0  # FIXME: validation loss instead of 0.0
 
     def evalute_repr(self, batch):
         repr_tensor = torch.empty(batch.shape[0], self.layers[-1])
