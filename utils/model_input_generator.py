@@ -1,22 +1,33 @@
 import pandas as pd
 import random
+from sklearn.model_selection import train_test_split
+
+"""
+All available train and validation data is expected as an input.
+"""
 
 
 class ModelInputGenerator:
-    def __init__(self, docs, queries, qrels):
+    def __init__(self, docs, queries, qrels, valid_size=0.0, rs=0):
         random.seed(0)
         self.docs = docs
         self.queries = queries
         self.qrels = qrels
-        self.offset = 0
+        self.train_offset = 0
+        self.valid_offset = 0
         self.doc_offset = 0
-        self.__preprocess_data()
+        self.__preprocess_data(valid_size, rs)
 
-    def __preprocess_data(self):
+    def __preprocess_data(self, valid_size, rs):
         print("Preprocessing data started...")
+
         self.df_docs = pd.read_csv(self.docs, na_filter=False)
         self.df_queries = pd.read_csv(self.queries, na_filter=False)
-        self.df_qrels = pd.read_csv(self.qrels, sep="\t", na_filter=False, header=None)
+        df_qrels = pd.read_csv(self.qrels, sep="\t", na_filter=False, header=None)
+        self.df_qrels_train, self.df_qrels_val, _, _ = train_test_split(
+            df_qrels, df_qrels, test_size=valid_size, random_state=rs
+        )
+
         self.docs_len = self.df_docs.shape[0]
         self.qrel_len = self.df_qrels.shape[0]
         print("Finished.")
@@ -31,11 +42,14 @@ class ModelInputGenerator:
     Returns the batch of 3-values: 'query doc_1(relevant) doc_2(irrelevant)'
     """
 
-    def generate_batch(self, size=256):
+    def __generate_batch(self, size, df_qrels, offset):
         batch = []
-        for i in range(self.offset, self.offset + size):
+        qrels_len = df_qrels.shape[0]
+        new_offset = min(offset + size, qrels_len)
+        is_end = True if new_offset == qrels_len else False
+        for i in range(offset, new_offset):
             sample = []
-            qrel = self.df_qrels.loc[i]  # id_query, 0, id_doc
+            qrel = df_qrels.loc[i]  # id_query, 0, id_doc
             sample.append(
                 self.df_queries.loc[self.df_queries["id_left"] == qrel[0]][
                     "text_left"
@@ -53,10 +67,16 @@ class ModelInputGenerator:
                     "text_right"
                 ]
             )
+            offset += 1
 
             batch.append(sample)
-        self.offset += size
-        return batch
+        return batch, is_end
+
+    def generate_valid_batch(self, size=128):
+        return self.__generate_batch(size=size, self.df_qrels_val, self.valid_offset)
+
+    def generate_train_batch(self, size=256):
+        return self.__generate_batch(size=size, self.df_qrels_train, self.train_offset)
 
     """
         Returns the documents batch
@@ -75,10 +95,8 @@ class ModelInputGenerator:
         self.doc_offset = val
 
     def reset(self, val=0):
-        self.offset = val
-
-    def qrel_length(self):
-        return self.qrel_len
+        self.train_offset = val
+        self.valid_offset = val
 
     def docs_length(self):
         return self.docs_len

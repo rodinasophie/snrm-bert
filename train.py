@@ -37,34 +37,44 @@ def build_inverted_index(args, model, mi_generator, iidx_file):
 
 
 """
-Training the model.
+Training and validating the model.
 """
 
 
-def train(args, model, mi_generator):
+def train_and_validate(args, model, data_generator):
     writer = SummaryWriter(args.summary_folder)
 
     batch_size = args.batch_size
     epochs = args.epochs
-    qrel_len = mi_generator.qrel_length()
-    i = 0
     for e in range(epochs):
         print("Training, epoch #", e)
-        mi_generator.reset()
-        offset = 0
-        while offset < qrel_len:
-            batch = mi_generator.generate_batch(size=batch_size)
-            training_loss, validation_loss = model.train(batch)
-            offset += batch_size
+        data_generator.reset()
 
-            writer.add_scalars(
-                "snrm-run-1",
-                {"Training loss": training_loss, "Validation loss": validation_loss},
-                i,
+        while True:
+            train_batch, is_end = data_generator.generate_train_batch(size=batch_size)
+            _ = model.train(train_batch)
+
+            if is_end:
+                break
+
+        while True:
+            validation_batch, is_end = data_generator.generate_valid_batch(
+                size=batch_size
             )
-            i += 1
+            _ = model.validate(validation_batch)
+            if is_end:
+                break
 
-        # model is trained by the i-th epoch
+        writer.add_scalars(
+            "snrm-run-1",
+            {
+                "Training loss": model.get_loss("train"),
+                "Validation loss": model.get_loss("valid"),
+            },
+            e,
+        )
+        model.reset_loss("train")
+        model.reset_loss("valid")
 
     writer.close()
 
@@ -80,9 +90,11 @@ def run(args):
         qmax_len=args.qmax_len,
         dmax_len=args.dmax_len,
     )
-    mi_generator = ModelInputGenerator(args.docs, args.queries, args.qrels)
+    mi_generator = ModelInputGenerator(
+        args.docs, args.queries, args.qrels, valid_size=0.2
+    )
 
-    train(args, model, mi_generator)
+    train_and_validate(args, model, mi_generator)
     build_inverted_index(args, model, mi_generator, args.inverted_index)
     model.save(args.output_file)
 
@@ -100,4 +112,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
     run(args)
-

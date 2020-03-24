@@ -45,6 +45,12 @@ class SNRM:
         self.qmax_len = qmax_len
         self.dmax_len = dmax_len
 
+        self.training_loss = 0.0
+        self.validation_loss = 0.0
+
+        self.training_steps = 0
+        self.validation_steps = 0
+
         self.layers = layers
         self.embeddings = Embeddings(fembeddings)
         self.autoencoder = Autoencoder(layers, drop_prob=drop_prob)
@@ -115,8 +121,57 @@ class SNRM:
             # print statistics
             running_loss += loss.item()
 
-        print("Finished Training")
-        return running_loss / batch_size, 0.0  # FIXME: validation loss instead of 0.0
+        step_loss = running_loss / batch_size
+        self.training_loss += step_loss
+        self.training_steps += 1
+        return step_loss
+
+    def validate(self, batch):
+        validation_loss = 0.0
+        out_batch = self.__build_emb_input(batch, self.qmax_len, self.dmax_len)
+        batch_size = out_batch.shape[0]
+        for i in range(batch_size):
+            # get the inputs; data is a list of [inputs, labels]
+            query, d1, d2 = out_batch[i]
+
+            q_out = self.autoencoder(self.__reshape2_4d(query).to(self.device))
+            d1_out = self.autoencoder(self.__reshape2_4d(d1).to(self.device))
+            d2_out = self.autoencoder(self.__reshape2_4d(d2).to(self.device))
+
+            reg_term = torch.cat((q_out, d1_out, d2_out), dim=1).sum(
+                dim=1, keepdim=True
+            )
+            x1 = (q_out * d1_out).sum(dim=1, keepdim=True)
+            x2 = (q_out * d2_out).sum(dim=1, keepdim=True)
+
+            target = torch.ones(1).to(self.device)
+            loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term
+
+            # print statistics
+            validation_loss += loss.item()
+
+        step_loss = validation_loss / batch_size
+        self.validation_loss += step_loss
+        self.validation_steps += 1
+        return step_loss
+
+    def reset_loss(self, loss):
+        if loss == "train":
+            self.training_loss = 0.0
+            self.training_steps = 0
+        elif loss == "valid":
+            self.validation_loss = 0.0
+            self.validation_steps = 0
+        else:
+            Exception("No loss found: ", loss)
+
+    def get_loss(self, loss):
+        if loss == "train":
+            return self.training_loss / self.training_steps
+        elif loss == "valid":
+            return self.validation_loss / self.validation_steps
+        else:
+            Exception("No loss found: ", loss)
 
     def evalute_repr(self, batch):
         repr_tensor = torch.empty(batch.shape[0], self.layers[-1])
