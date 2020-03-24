@@ -1,6 +1,6 @@
 import argparse
 
-from snrm import SNRM, InvertedIndexConstructor
+from snrm import SNRM, InvertedIndex
 from utils import ModelInputGenerator
 import json
 from torch.utils.tensorboard import SummaryWriter
@@ -23,7 +23,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 def build_inverted_index(args, model, mi_generator, iidx_file):
-    inverted_index = InvertedIndexConstructor(iidx_file)
+    print("Building inverted index started...")
+    inverted_index = InvertedIndex(iidx_file)
     batch_size = args.batch_size
     docs_len = mi_generator.docs_length()
     offset = 0
@@ -46,7 +47,9 @@ def train(args, model, mi_generator):
     batch_size = args.batch_size
     epochs = args.epochs
     qrel_len = mi_generator.qrel_length()
+    i = 0
     for e in range(epochs):
+        print("Training, epoch #", e)
         mi_generator.reset()
         offset = 0
         while offset < qrel_len:
@@ -55,10 +58,11 @@ def train(args, model, mi_generator):
             offset += batch_size
 
             writer.add_scalars(
-                "snrm-run-0",
+                "snrm-run-1",
                 {"Training loss": training_loss, "Validation loss": validation_loss},
-                e,
+                i,
             )
+            i += 1
 
         # model is trained by the i-th epoch
 

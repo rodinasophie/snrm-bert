@@ -7,7 +7,7 @@
     "output_file": "./model.pth",
     "summary_folder": "./snrm-summary/",
     "learning_rate": 5e-5,
-    "epoches": 2,
+    "epochs": 2,
     "batch_size": 32,
     "qmax_len": 100,
     "dmax_len": 10000,

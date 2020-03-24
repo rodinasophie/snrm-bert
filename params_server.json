@@ -6,9 +6,9 @@
     "inverted_index": "./inverted_index.csv",
     "output_file": "./model.pth",
     "summary_folder": "./snrm-summary/",
-    "learning_rate": 5e-5,
-    "epoches": 2,
-    "batch_size": 32,
+    "learning_rate": 5e-3,
+    "epochs": 2,
+    "batch_size": 128,
     "qmax_len": 100,
     "dmax_len": 10000,
     "layers": [

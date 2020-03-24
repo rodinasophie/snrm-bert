@@ -4,6 +4,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch
 
 
 # TODO: use built-in embedding layers?
@@ -32,7 +33,7 @@ class SNRM:
     def __init__(
         self,
         fembeddings,
-        learning_rate=5 * 10e-5,
+        learning_rate=5e-5,
         batch_size=32,
         layers=[300, 100, 5000],
         reg_lambda=10e-7,
@@ -54,6 +55,7 @@ class SNRM:
         )
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print("Device to use:", self.device)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -105,7 +107,7 @@ class SNRM:
             x1 = (q_out * d1_out).sum(dim=1, keepdim=True)
             x2 = (q_out * d2_out).sum(dim=1, keepdim=True)
 
-            target = torch.ones(1).to
+            target = torch.ones(1).to(self.device)
             loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term
             loss.backward()
             self.optimizer.step()
