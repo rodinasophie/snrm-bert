@@ -27,9 +27,10 @@ class ModelInputGenerator:
         self.df_qrels_train, self.df_qrels_val, _, _ = train_test_split(
             df_qrels, df_qrels, test_size=valid_size, random_state=rs
         )
-
+        
+        self.df_qrels_train = self.df_qrels_train.reset_index()
+        self.df_qrels_val = self.df_qrels_val.reset_index()
         self.docs_len = self.df_docs.shape[0]
-        self.qrel_len = self.df_qrels.shape[0]
         print("Finished.")
 
     def __randidx(self, a, b, val):
@@ -42,7 +43,13 @@ class ModelInputGenerator:
     Returns the batch of 3-values: 'query doc_1(relevant) doc_2(irrelevant)'
     """
 
-    def __generate_batch(self, size, df_qrels, offset):
+    def __generate_batch(self, size, dftype):
+        if dftype == "train":
+            df_qrels = self.df_qrels_train
+            offset = self.train_offset
+        else:
+            df_qrels = self.df_qrels_val
+            offset = self.valid_offset
         batch = []
         qrels_len = df_qrels.shape[0]
         new_offset = min(offset + size, qrels_len)
@@ -73,10 +80,10 @@ class ModelInputGenerator:
         return batch, is_end
 
     def generate_valid_batch(self, size=128):
-        return self.__generate_batch(size=size, self.df_qrels_val, self.valid_offset)
+        return self.__generate_batch(size, dftype="valid")
 
     def generate_train_batch(self, size=256):
-        return self.__generate_batch(size=size, self.df_qrels_train, self.train_offset)
+        return self.__generate_batch(size, dftype = "train")
 
     """
         Returns the documents batch
