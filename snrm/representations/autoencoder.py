@@ -25,4 +25,3 @@ class Autoencoder(nn.Module):
             x = self.dropout(F.relu(self.fc[i](x)))
         x = torch.mean(x, 3, keepdim=True)
         return x
-

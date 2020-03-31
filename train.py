@@ -52,7 +52,7 @@ def train_and_validate(args, model, data_generator):
 
         while True:
             train_batch, is_end = data_generator.generate_train_batch(size=batch_size)
-            _ = model.train(train_batch)
+            train_loss = model.train(train_batch)
 
             if is_end:
                 break
@@ -61,25 +61,23 @@ def train_and_validate(args, model, data_generator):
             validation_batch, is_end = data_generator.generate_valid_batch(
                 size=batch_size
             )
-            _ = model.validate(validation_batch)
+            valid_loss = model.validate(validation_batch)
             if is_end:
                 break
 
         writer.add_scalars(
             "snrm-run-1",
-            {
-                "Training loss": model.get_loss("train"),
-                "Validation loss": model.get_loss("valid"),
-            },
+            {"Training loss": train_loss, "Validation loss": valid_loss},
             e,
         )
-        model.reset_loss("train")
-        model.reset_loss("valid")
+        # model.reset_loss("train")
+        # model.reset_loss("valid")
 
     writer.close()
 
 
 def run(args):
+    print("Running....")
     model = SNRM(
         learning_rate=args.learning_rate,
         batch_size=args.batch_size,
@@ -89,6 +87,7 @@ def run(args):
         fembeddings=args.embeddings,
         qmax_len=args.qmax_len,
         dmax_len=args.dmax_len,
+        is_stub=args.is_stub,
     )
     mi_generator = ModelInputGenerator(
         args.docs, args.queries, args.qrels, valid_size=0.2

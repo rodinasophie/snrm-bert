@@ -17,5 +17,6 @@
         5000
     ],
     "reg_lambda": 1e-7,
-    "drop_prob": 0.6
+    "drop_prob": 0.6,
+    "is_stub": 0
 }

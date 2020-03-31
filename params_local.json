@@ -1,7 +1,7 @@
 {
     "docs": "../ruwikIR/processed_documents.csv",
-    "queries": "../ruwikIR/processed_queries.csv",
-    "qrels": "../ruwikIR/qrels",
+    "queries": "../ruwikIR/training/processed_queries.csv",
+    "qrels": "../ruwikIR/training/qrels",
     "embeddings": "/home/mrim/data/embeddings/cc.ru.300.bin",
     "inverted_index": "./inverted_index.csv",
     "output_file": "./model.pth",
@@ -17,5 +17,6 @@
         5000
     ],
     "reg_lambda": 1e-7,
-    "drop_prob": 0.6
+    "drop_prob": 0.6,
+    "is_stub": 1
 }
