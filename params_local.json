@@ -1,16 +1,15 @@
 {
-    "docs": "../ruwikIR/processed_documents.csv",
-    "queries": "../ruwikIR/training/processed_queries.csv",
-    "qrels": "../ruwikIR/training/qrels",
+    "docs": "stub_data/test/docs.csv",
+    "queries": "stub_data/test/queries.csv",
+    "qrels": "stub_data/test/qrels",
     "embeddings": "/home/mrim/data/embeddings/cc.ru.300.bin",
-    "inverted_index": "./inverted_index.csv",
-    "output_file": "./model.pth",
-    "summary_folder": "./snrm-summary/",
-    "learning_rate": 5e-5,
-    "epochs": 2,
-    "batch_size": 32,
+    "model": "./models/model.pth",
+    "inverted_index": "./test_inverted_index.csv",
+    "batch_size": 3,
     "qmax_len": 100,
     "dmax_len": 10000,
+    "learning_rate": 5e-5,
+    "epochs": 20,
     "layers": [
         300,
         200,
@@ -18,5 +17,9 @@
     ],
     "reg_lambda": 1e-7,
     "drop_prob": 0.6,
-    "is_stub": 1
+    "is_stub": 1,
+    "metrics": [
+        "ret_score"
+    ],
+    "valid_size": 0.2
 }

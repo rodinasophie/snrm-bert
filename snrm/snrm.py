@@ -100,13 +100,13 @@ class SNRM:
     """
 
     def train(self, batch):
+        self.autoencoder.train()
         queries, docs1, docs2 = self.__build_emb_input(
             batch, self.qmax_len, self.dmax_len
         )
         # zero the parameter gradients
         self.optimizer.zero_grad()
 
-        print(queries.shape)
         # forward + backward + optimize
         q_out = self.autoencoder(self.__reshape2_4d(queries).to(self.device))
         d1_out = self.autoencoder(self.__reshape2_4d(docs1).to(self.device))
@@ -118,14 +118,15 @@ class SNRM:
 
         target = torch.ones(1).to(self.device)
         loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term
-        loss.backward()
+        loss.mean().backward()
         self.optimizer.step()
 
-        self.training_loss += loss.item()
+        self.training_loss += loss.mean()
         self.training_steps += 1
-        return np.mean(loss.item())
+        return loss.mean()
 
     def validate(self, batch):
+        self.autoencoder.eval()
         queries, docs1, docs2 = self.__build_emb_input(
             batch, self.qmax_len, self.dmax_len
         )
@@ -141,9 +142,9 @@ class SNRM:
         target = torch.ones(1).to(self.device)
         loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term
 
-        self.validation_loss += loss.item()
+        self.validation_loss += loss.mean()
         self.validation_steps += 1
-        return np.mean(loss.item())
+        return loss.mean()
 
     def reset_loss(self, loss):
         if loss == "train":
@@ -163,15 +164,21 @@ class SNRM:
         else:
             Exception("No loss found: ", loss)
 
-    def evalute_repr(self, batch):
+    def evaluate_repr(self, batch):
         repr_tensor = torch.empty(batch.shape[0], self.layers[-1])
         for i in range(batch.shape[0]):
             d_m = self.embeddings.matrix(batch[i][1], max_len=self.dmax_len)
+            d_m = np.expand_dims(d_m, axis=0)
             d_out = self.autoencoder(self.__reshape2_4d(d_m).to(self.device))
-            repr_tensor[i] = (batch[i][0], d_out)
+            repr_tensor[i] = d_out[:, 0, :, :]
         return repr_tensor
 
     def save(self, filename):
-        print("Saving model...")
-        self.autoencoder.save(filename)
+        print("Saving model to ", filename)
+        torch.save(self.autoencoder.state_dict(), filename)
         print("Saved.")
+
+    def load(self, filename):
+        print("Uploading model to ", filename)
+        self.autoencoder.load_state_dict(torch.load(filename))
+        print("Uploaded.")

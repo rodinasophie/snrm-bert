@@ -1,25 +1,64 @@
 import argparse
-
+import json
+from utils import ModelInputGenerator
+from snrm import SNRM
+from snrm.inverted_index import build_inverted_index
+from utils.evaluation_metrics import retrieval_score
 
 """
 Testing and evaluating the model.
 """
 
 
-def test_model(test_data):
-    # TODO:
-    # 1. upload the trained model
-    # 2. run the model with a test data
-    # 3. using the inverted index estimate relevance
-    # 4. report results
+def evaluate_metrics(model, mi_generator, metrics, index, batch_size):
+    queries_len = mi_generator.queries_length()
+    offset = 0
+    res = dict()
+    while offset < queries_len:
+        queries = mi_generator.generate_queries(size=batch_size)
+        qreprs = model.evaluate_repr(queries)
+        for qrepr, q in zip(qreprs, queries):
+            res[q] = retrieval_score(qrepr, index)
+        offset += batch_size
+    return res
 
-    print(test_data)
+
+def run(args):
+    model = SNRM(
+        learning_rate=args.learning_rate,
+        batch_size=args.batch_size,
+        layers=args.layers,
+        reg_lambda=args.reg_lambda,
+        drop_prob=args.drop_prob,
+        fembeddings=args.embeddings,
+        qmax_len=args.qmax_len,
+        dmax_len=args.dmax_len,
+        is_stub=args.is_stub,
+    )
+    mi_generator = ModelInputGenerator(
+        args.docs, args.queries, args.qrels, valid_size=0.0
+    )
+
+    model.load(args.model)
+    index = build_inverted_index(
+        args.batch_size, model, mi_generator, args.inverted_index
+    )
+    results = evaluate_metrics(
+        model, mi_generator, args.metrics, index, args.batch_size
+    )
+    print(results)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test-data", type=str, help="Path to testing data")
-
+    parser.add_argument(
+        "-p", "--params", type=str, help="Path to json-file with params"
+    )
+    args, _ = parser.parse_known_args()
+    with open(args.params) as f:
+        params = json.load(f)
+    for key, val in params.items():
+        parser.add_argument("--" + key, default=val)
     args = parser.parse_args()
-    test_model(args.test_data)
-
+    print(args)
+    run(args)
