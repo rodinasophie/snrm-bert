@@ -1,3 +1,3 @@
 from .train_loader import TrainLoader
 from .evaluation_loader import EvaluationLoader
-from .evaluation_metrics import retrieval_score
+from .evaluation import retrieval_score, build_inverted_index, dump_retrival_score

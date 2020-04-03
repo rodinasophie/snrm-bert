@@ -34,11 +34,13 @@ class EvaluationLoader:
     """
 
     def generate_queries(self, size=256):
+        query_ids = []
         queries = []
         for i in range(self.query_offset, self.query_offset + size):
+            query_ids.append(self.df_queries.loc[i]["id_left"])
             queries.append(self.df_queries.loc[i]["text_left"])
         self.query_offset += size
-        return np.asarray(queries)
+        return np.asarray(query_ids), np.asarray(queries)
 
     """
         Returns the documents batch.

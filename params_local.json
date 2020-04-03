@@ -12,6 +12,7 @@
     "model_name": "snrm-model-1",
     "model": "./models/model1.pth",
     "inverted_index": "./test_inverted_index.csv",
+    "result_qrels": "./result_qrels.csv",
     "batch_size": 3,
     "qmax_len": 100,
     "dmax_len": 10000,

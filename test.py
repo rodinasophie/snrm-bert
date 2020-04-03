@@ -2,24 +2,16 @@ import argparse
 import json
 from utils import EvaluationLoader
 from snrm import SNRM
-from snrm.inverted_index import build_inverted_index
-from utils.evaluation_metrics import retrieval_score
+from utils.evaluation import retrieval_score, build_inverted_index, dump_retrival_score
 
 """
 Testing and evaluating the model.
 """
 
 
-def evaluate_metrics(model, eval_loader, metrics, index, batch_size):
-    queries_len = eval_loader.queries_length()
-    offset = 0
-    res = dict()
-    while offset < queries_len:
-        queries = eval_loader.generate_queries(size=batch_size)
-        qreprs = model.evaluate_repr(queries)
-        for qrepr, q in zip(qreprs, queries):
-            res[q] = retrieval_score(qrepr, index)
-        offset += batch_size
+def evaluate(model, eval_loader, metrics, index, batch_size):
+    # TODO: metrics should be used for pytrec_eval
+    res = retrieval_score(model, eval_loader, index, batch_size)
     return res
 
 
@@ -41,7 +33,8 @@ def run(args):
     index = build_inverted_index(
         args.batch_size, model, eval_loader, args.inverted_index
     )
-    results = evaluate_metrics(model, eval_loader, args.metrics, index, args.batch_size)
+    results = evaluate(model, eval_loader, args.metrics, index, args.batch_size)
+    dump_retrival_score(results, args.result_qrels)
     print(results)
 
 
