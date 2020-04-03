@@ -1,6 +1,6 @@
 import argparse
 import json
-from utils import ModelInputGenerator
+from utils import EvaluationLoader
 from snrm import SNRM
 from snrm.inverted_index import build_inverted_index
 from utils.evaluation_metrics import retrieval_score
@@ -10,12 +10,12 @@ Testing and evaluating the model.
 """
 
 
-def evaluate_metrics(model, mi_generator, metrics, index, batch_size):
-    queries_len = mi_generator.queries_length()
+def evaluate_metrics(model, eval_loader, metrics, index, batch_size):
+    queries_len = eval_loader.queries_length()
     offset = 0
     res = dict()
     while offset < queries_len:
-        queries = mi_generator.generate_queries(size=batch_size)
+        queries = eval_loader.generate_queries(size=batch_size)
         qreprs = model.evaluate_repr(queries)
         for qrepr, q in zip(qreprs, queries):
             res[q] = retrieval_score(qrepr, index)
@@ -35,17 +35,13 @@ def run(args):
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,
     )
-    mi_generator = ModelInputGenerator(
-        args.docs, args.queries, args.qrels, valid_size=0.0
-    )
+    eval_loader = EvaluationLoader(args.test_docs, args.test_queries, args.test_qrels)
 
     model.load(args.model)
     index = build_inverted_index(
-        args.batch_size, model, mi_generator, args.inverted_index
+        args.batch_size, model, eval_loader, args.inverted_index
     )
-    results = evaluate_metrics(
-        model, mi_generator, args.metrics, index, args.batch_size
-    )
+    results = evaluate_metrics(model, eval_loader, args.metrics, index, args.batch_size)
     print(results)
 
 
