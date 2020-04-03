@@ -2,17 +2,18 @@ import argparse
 import json
 from utils import EvaluationLoader
 from snrm import SNRM
-from utils.evaluation import retrieval_score, build_inverted_index, dump_retrival_score
+from utils.inverted_index import build_inverted_index
+from utils.retrieval_score import RetrievalScore
+from utils.pytrec_evaluator import MetricsEvaluator, read_qrels
 
 """
 Testing and evaluating the model.
 """
 
 
-def evaluate(model, eval_loader, metrics, index, batch_size):
-    # TODO: metrics should be used for pytrec_eval
-    res = retrieval_score(model, eval_loader, index, batch_size)
-    return res
+def evaluate_metrics(predicted_qrels, qrels, metrics):
+    evaluator = MetricsEvaluator(predicted_qrels, qrels)
+    return evaluator.evaluate(metrics)
 
 
 def run(args):
@@ -27,15 +28,28 @@ def run(args):
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,
     )
-    eval_loader = EvaluationLoader(args.test_docs, args.test_queries, args.test_qrels)
-
+    # Load model from file
+    eval_loader = EvaluationLoader(args.test_docs, args.test_queries)
     model.load(args.model)
+
+    # Build inverted index
     index = build_inverted_index(
         args.batch_size, model, eval_loader, args.inverted_index
     )
-    results = evaluate(model, eval_loader, args.metrics, index, args.batch_size)
-    dump_retrival_score(results, args.result_qrels)
-    print(results)
+
+    # Estimate retrieval score for each document and each query
+    retrieval_score = RetrievalScore()
+    predicted_qrels = retrieval_score.evaluate(
+        eval_loader, index, model, args.batch_size
+    )
+    retrieval_score.dump(args.result_qrels)
+    print(predicted_qrels)
+
+    # Evaluate retrieval metrics
+    metrics = evaluate_metrics(
+        predicted_qrels, read_qrels(args.test_qrels), args.metrics
+    )
+    print(metrics)
 
 
 if __name__ == "__main__":

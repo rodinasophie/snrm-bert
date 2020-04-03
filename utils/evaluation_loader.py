@@ -9,16 +9,15 @@ import numpy as np
 
 
 class EvaluationLoader:
-    def __init__(self, docs, queries, qrels, rs=0):
+    def __init__(self, docs, queries, rs=0):
         random.seed(rs)
         self.doc_offset = 0
         self.query_offset = 0
-        self.__init_df(docs, queries, qrels)
+        self.__init_df(docs, queries)
 
-    def __init_df(self, docs, queries, qrels):
+    def __init_df(self, docs, queries):
         self.df_docs = pd.read_csv(docs, na_filter=False)
         self.df_queries = pd.read_csv(queries, na_filter=False)
-        self.df_qrels = pd.read_csv(qrels, sep="\t", na_filter=False, header=None)
 
         self.docs_len = self.df_docs.shape[0]
         self.queries_len = self.df_queries.shape[0]

@@ -1,6 +1,6 @@
 import argparse
 
-from snrm import SNRM, InvertedIndex
+from snrm import SNRM
 from utils import TrainLoader
 import json
 from torch.utils.tensorboard import SummaryWriter
