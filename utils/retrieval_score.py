@@ -21,7 +21,7 @@ class RetrievalScore:
             queries_id, queries = eval_loader.generate_queries(size=batch_size)
             qreprs = model.evaluate_repr(queries).detach().numpy()
             for qrepr, q in zip(qreprs, queries_id):
-                self.retrieval_score[int(q)] = self.__retrieval_score_for_query(
+                self.retrieval_score[str(q)] = self.__retrieval_score_for_query(
                     qrepr, index
                 )  # returns dict({doc_id:val})
             offset += batch_size
@@ -45,7 +45,7 @@ class RetrievalScore:
             if query_repr[i] != 0.0:
                 docs = index.get_index()[i]
                 for j in range(len(docs)):
-                    doc_id = int(docs[j][0])
+                    doc_id = str(docs[j][0])
                     if doc_id not in relevant_docs:
                         relevant_docs[doc_id] = query_repr[i].item() * docs[j][1]
                     else:

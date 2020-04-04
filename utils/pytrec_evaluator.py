@@ -15,7 +15,7 @@ class MetricsEvaluator:
         if platform.system().lower().startswith('win'):
             return "Cannot evaluate result, windows platform."
         
-        evaluator = pytrec_eval.RelevanceEvaluator(self.qrels, metrics)
+        evaluator = pytrec_eval.RelevanceEvaluator(self.qrels, set(metrics))
         results = evaluator.evaluate(self.predicted_qrels)
 
         query_measures = list(results.values())

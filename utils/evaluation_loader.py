@@ -35,7 +35,8 @@ class EvaluationLoader:
     def generate_queries(self, size=256):
         query_ids = []
         queries = []
-        for i in range(self.query_offset, self.query_offset + size):
+        end = min(self.query_offset + size, self.queries_len)
+        for i in range(self.query_offset, end):
             query_ids.append(self.df_queries.loc[i]["id_left"])
             queries.append(self.df_queries.loc[i]["text_left"])
         self.query_offset += size
@@ -48,7 +49,8 @@ class EvaluationLoader:
     def generate_docs(self, size=256):
         doc_ids = []
         docs = []
-        for i in range(self.doc_offset, self.doc_offset + size):
+        end = min(self.doc_offset + size, self.docs_len)
+        for i in range(self.doc_offset, end):
             doc_ids.append(self.df_docs.loc[i]["id_right"])
             docs.append(self.df_docs.loc[i]["text_right"])
         self.doc_offset += size
