@@ -113,6 +113,7 @@ def run(args):
         args.train_qrels,
         args.valid_queries,
         args.valid_qrels,
+        save_mem=args.save_mem,
     )
 
     train_and_validate(args, model, train_loader)

@@ -66,14 +66,12 @@ class SNRM:
             self.autoencoder.parameters(), lr=learning_rate, momentum=0.9
         )
 
-        self.device = (
-            "cpu"  # torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        )
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("Device to use:", self.device)
 
-        # if torch.cuda.device_count() > 1:
-        #    print("Let's use", torch.cuda.device_count(), "GPUs!")
-        #    self.autoencoder = nn.DataParallel(self.autoencoder)
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            self.autoencoder = nn.DataParallel(self.autoencoder)
 
         self.autoencoder.to(self.device)
 
@@ -114,9 +112,13 @@ class SNRM:
         d1_out = self.autoencoder(self.__reshape2_4d(docs1).to(self.device))
         d2_out = self.autoencoder(self.__reshape2_4d(docs2).to(self.device))
 
-        reg_term = torch.cat((q_out, d1_out, d2_out), dim=1).sum(dim=1, keepdim=True)
-        x1 = (q_out * d1_out).sum(dim=1, keepdim=True)
-        x2 = (q_out * d2_out).sum(dim=1, keepdim=True)
+        reg_term = (
+            torch.cat((q_out, d1_out, d2_out), dim=1)
+            .sum(dim=1, keepdim=True)
+            .to(self.device)
+        )
+        x1 = (q_out * d1_out).sum(dim=1, keepdim=True).to(self.device)
+        x2 = (q_out * d2_out).sum(dim=1, keepdim=True).to(self.device)
 
         target = torch.ones(1).to(self.device)
         loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term

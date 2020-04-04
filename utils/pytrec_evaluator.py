@@ -1,6 +1,7 @@
 
 import platform
 from .retrieval_score import RetrievalScore
+
 if not platform.system().lower().startswith('win'):
     import pytrec_eval
 
@@ -16,9 +17,16 @@ class MetricsEvaluator:
         
         evaluator = pytrec_eval.RelevanceEvaluator(self.qrels, metrics)
         results = evaluator.evaluate(self.predicted_qrels)
-        # FIXME: don't return all values for all queries,
-        # return only one value for each metric
-        return results
+
+        query_measures = list(results.values())
+        keys = sorted(query_measures[0].keys())
+
+        final_measures = dict()
+        for measure in keys:
+            final_measures[measure] = pytrec_eval.compute_aggregated_measure(
+                measure, [query_measures[measure] for query_measures in results.values()]
+            )
+        return final_measures
 
 
 def read_qrels(qrels):

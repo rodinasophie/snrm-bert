@@ -8,16 +8,24 @@ import numpy as np
 
     Train and validation sets are not kept in memory concurrently
     for memory efficiency purposes.
+
+    Params:
+        save_mem - if this flag is set, after all data is read(is_end=True)
+        it's removed from the memory
 """
 
 
 class TrainLoader:
-    def __init__(self, docs, train_queries, train_qrels, valid_queries, valid_qrels):
+    def __init__(
+        self, docs, train_queries, train_qrels, valid_queries, valid_qrels, save_mem
+    ):
         self.train_queries = train_queries
         self.train_qrels = train_qrels
 
         self.valid_queries = valid_queries
         self.valid_qrels = valid_qrels
+
+        self.save_mem = save_mem
 
         self.is_trainset_loaded = False
         self.is_validset_loaded = False
@@ -133,8 +141,12 @@ class TrainLoader:
             self.df_train_queries, self.df_train_qrels, self.train_offset, batch_size
         )
         self.train_offset = new_off
-        if is_end:
+
+        if is_end and self.save_mem:
             self.__unload_trainset()
+        elif is_end:
+            self.train_offset = 0
+
         return batch, is_end
 
     """
@@ -150,6 +162,10 @@ class TrainLoader:
         )
 
         self.valid_offset = new_off
-        if is_end:
+
+        if is_end and self.save_mem:
             self.__unload_validset()
+        elif is_end:
+            self.valid_offset = 0
+
         return batch, is_end
