@@ -1,0 +1,26 @@
+{
+    "docs": "/home/mrim/rodinas/ruwikIR/processed_documents.csv",
+    "queries": "/home/mrim/rodinas/ruwikIR/processed_queries.csv",
+    "qrels": "/home/mrim/rodinas/ruwikIR/qrels",
+    "embeddings": "/home/mrim/data/embeddings/cc.ru.300.bin",
+    "inverted_index": "./inverted_index.csv",
+    "model": "./model/model_server.pth",
+    "summary_folder": "./snrm-summary/",
+    "learning_rate": 5e-3,
+    "epochs": 20,
+    "batch_size": 256,
+    "qmax_len": 100,
+    "dmax_len": 10000,
+    "layers": [
+        300,
+        200,
+        5000
+    ],
+    "reg_lambda": 1e-7,
+    "drop_prob": 0.6,
+    "is_stub": 0,
+    "metrics": [
+        "noret"
+    ],
+    "valid_size": 0.2
+}
