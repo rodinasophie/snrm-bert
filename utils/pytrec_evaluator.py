@@ -1,5 +1,6 @@
 import platform
 from .retrieval_score import RetrievalScore
+from .helpers import dump
 
 if not platform.system().lower().startswith("win"):
     import pytrec_eval
@@ -10,6 +11,7 @@ class MetricsEvaluator:
         self.predicted_qrels = predicted_qrels
         self.qrels = qrels
         self.all_metrics = ["map", "ndcg_cut", "P", "recall"]
+        self.final_measures = None
 
     def evaluate(self, metrics):
         if platform.system().lower().startswith("win"):
@@ -25,7 +27,12 @@ class MetricsEvaluator:
                 measure,
                 [query_measures[measure] for query_measures in results.values()],
             )
-        return final_measures
+        self.final_measures = final_measures
+        return self.final_measures
+
+    def dump(self, filename):
+        if self.final_measures is not None:
+            dump(self.final_measures, filename)
 
 
 def read_qrels(qrels):

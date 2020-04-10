@@ -1,4 +1,5 @@
 import json
+from .helpers import dump
 
 
 class RetrievalScore:
@@ -60,10 +61,7 @@ class RetrievalScore:
         if not self.is_evaluated:
             print("Retrieval score is not yet evaluated")
         else:
-            json_file = json.dumps(self.retrieval_score)
-            f = open(filename, "w")
-            f.write(json_file)
-            f.close()
+            dump(Self.retrieval_score, filename)
 
     """
         Read retrieval score to dict.

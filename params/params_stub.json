@@ -24,6 +24,7 @@
     "rerun_if_exists": 0,
     "inverted_index": "inverted_index.csv",
     "retrieval_score": "retrieval_score.csv",
+    "final_metrics": "final_metrics.csv",
     "model_pth": "model.pth",
     "model_checkpoint_pth": "model_checkpoint.pth",
     "models_folder": "./models/",

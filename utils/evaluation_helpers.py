@@ -9,9 +9,12 @@ Testing and evaluating the model.
 """
 
 
-def _evaluate_metrics(predicted_qrels, qrels, metrics):
+def _evaluate_metrics(predicted_qrels, qrels, metrics, filename, dump):
     evaluator = MetricsEvaluator(predicted_qrels, qrels)
-    return evaluator.evaluate(metrics)
+    metrics = evaluator.evaluate(metrics)
+    if dump:
+        evaluator.dump(filename)
+    return metrics
 
 
 """
@@ -55,11 +58,14 @@ def evaluate_model(
     predicted_qrels = _compute_retrieval_score(
         model_params, model, eval_loader, index, dump=dump
     )
-    # print(predicted_qrels)
 
     # Evaluate retrieval metrics
     metrics = _evaluate_metrics(
-        predicted_qrels, eval_loader.generate_qrels(), test_metrics
+        predicted_qrels,
+        eval_loader.generate_qrels(),
+        test_metrics,
+        model_params["final_metrics"],
+        dump=dump,
     )
 
     return metrics

@@ -3,8 +3,8 @@ import json
 from utils import EvaluationLoader
 from snrm import SNRM
 from utils.helpers import manage_model_params
-from utils.evaluation_helpers import evaluate_model
-from utils.helpers import path_exists
+from utils.evaluation_helpers import evaluate_model, evaluate_metrics
+from utils.helpers import path_exists, load_file
 
 
 def check_rebuild(model_params):
@@ -28,6 +28,8 @@ def run(args, model_params):
     rebuild_inverted_index, rebuild_retrieval_score = check_rebuild(model_params)
 
     if not rebuild_inverted_index and not rebuild_retrieval_score:
+        metrics = load_file(model_params["final_metrics"])
+        print(metrics)
         return
 
     model = SNRM(
@@ -57,8 +59,9 @@ def run(args, model_params):
         dump=True,
         rebuild_inverted_index=rebuild_inverted_index,
     )
+
     print(metrics)
-    print("Finished training and validating for {}".format(model_params["model_name"]))
+    print("Finished testing for {}".format(model_params["model_name"]))
 
 
 if __name__ == "__main__":
