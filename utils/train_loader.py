@@ -1,6 +1,7 @@
 import pandas as pd
 import random
 import numpy as np
+from .evaluation_loader import EvaluationLoader
 
 """
     TrainLoader is responsible for triples generation
@@ -71,6 +72,8 @@ class TrainLoader:
     """
 
     def __unload_trainset(self):
+        if not self.is_trainset_loaded:
+            return
         self.train_offset = 0
         del self.df_train_queries
         del self.df_train_qrels
@@ -83,8 +86,10 @@ class TrainLoader:
 
     def __unload_validset(self):
         self.valid_offset = 0
-        del self.df_valid_queries
-        del self.df_valid_qrels
+        if self.df_valid_queries is not None:
+            del self.df_valid_queries
+        if self.df_valid_qrels is not None:
+            del self.df_valid_qrels
         self.is_validset_loaded = False
         print("Validation set is released.")
 
@@ -102,7 +107,7 @@ class TrainLoader:
         General function for batch generation.
     """
 
-    def __generate_batch(self, df_queries, df_qrels, offset, batch_size):
+    def __generate_batch(self, df_queries, df_qrels, offset, batch_size, irrelevant):
         batch = []
         qrels_len = df_qrels.shape[0]
         new_offset = min(offset + batch_size, qrels_len)
@@ -119,12 +124,12 @@ class TrainLoader:
                     "text_right"
                 ].values[0]
             )
-
-            sample.append(
-                self.df_docs.loc[self.__randidx(0, self.docs_len - 1, qrel[2])][
-                    "text_right"
-                ]
-            )
+            if irrelevant:
+                sample.append(
+                    self.df_docs.loc[self.__randidx(0, self.docs_len - 1, qrel[2])][
+                        "text_right"
+                    ]
+                )
             offset += 1
             batch.append(sample)
         return batch, is_end, offset
@@ -133,12 +138,18 @@ class TrainLoader:
         Generates a triple (query, relevant doc, irrelevant doc) from the train set.
     """
 
-    def generate_train_batch(self, batch_size=128):
+    def generate_train_batch(
+        self, batch_size=128,
+    ):
         if not self.is_trainset_loaded:
             self.__load_trainset()
 
         batch, is_end, new_off = self.__generate_batch(
-            self.df_train_queries, self.df_train_qrels, self.train_offset, batch_size
+            self.df_train_queries,
+            self.df_train_qrels,
+            self.train_offset,
+            batch_size,
+            True,
         )
         self.train_offset = new_off
 
@@ -153,19 +164,59 @@ class TrainLoader:
         Generates a triple (query, relevant doc, irrelevant doc) from the valid set.
     """
 
-    def generate_valid_batch(self, batch_size=128):
+    def generate_valid_batch(self, batch_size=128, irrelevant=False, force_keep=False):
         if not self.is_validset_loaded:
             self.__load_validset()
 
         batch, is_end, new_off = self.__generate_batch(
-            self.df_valid_queries, self.df_valid_qrels, self.valid_offset, batch_size
+            self.df_valid_queries,
+            self.df_valid_qrels,
+            self.valid_offset,
+            batch_size,
+            irrelevant,
         )
 
         self.valid_offset = new_off
 
-        if is_end and self.save_mem:
+        if is_end and force_keep:
+            self.valid_offset = 0
+        elif is_end and self.save_mem:
             self.__unload_validset()
         elif is_end:
             self.valid_offset = 0
 
         return batch, is_end
+
+    """
+        Return docs ref to store memory.
+    """
+
+    def get_docs_ref(self):
+        return self.df_docs
+
+    """
+        Return valid queries ref.
+    """
+
+    def get_valid_queries_ref(self):
+        assert (
+            self.df_valid_queries is not None
+        ), "validation queries data frame is None"
+        return self.df_valid_queries
+
+    """
+        Return qrels name.
+    """
+    # FIXME: interface is asymmetric because of this function.
+    # But we store here qrels in data frame, but we need it in neighborhood module in pytrec_dict.
+    def get_valid_qrels_name(self):
+        return self.valid_qrels
+
+    """
+        Unload all data from the memory.
+    """
+
+    def unload_all(self):
+        if self.save_mem:
+            self.__unload_validset()
+            self.__unload_trainset()

@@ -66,10 +66,12 @@ class SNRM:
             self.autoencoder.parameters(), lr=learning_rate, momentum=0.9
         )
 
-        self.device = 'cpu'#torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = (
+            "cpu"  # torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        )
         print("Device to use:", self.device)
 
-        #if torch.cuda.device_count() > 1:
+        # if torch.cuda.device_count() > 1:
         #    print("Let's use", torch.cuda.device_count(), "GPUs!")
         #    self.autoencoder = nn.DataParallel(self.autoencoder)
 
@@ -186,3 +188,27 @@ class SNRM:
         print("Uploading model to ", filename)
         self.autoencoder.load_state_dict(torch.load(filename))
         print("Uploaded.")
+
+    def save_checkpoint(self, filename, epoch):
+        print("Saving checkpoint for epoch #", epoch)
+        torch.save(
+            {
+                "epoch": epoch,
+                "model_state_dict": self.autoencoder.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+            },
+            filename,
+        )
+
+    """
+        Uploads the old model and returns a new epoch to start training from.
+    """
+
+    def load_checkpoint(self, filename, epochs_num):
+        checkpoint = torch.load(filename)
+        epoch = checkpoint["epoch"]
+        if epoch != epochs_num - 1:
+            self.autoencoder.load_state_dict(checkpoint["model_state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            return epoch + 1, True
+        return 0, False

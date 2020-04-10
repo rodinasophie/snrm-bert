@@ -2,22 +2,34 @@ import argparse
 import json
 from utils import EvaluationLoader
 from snrm import SNRM
-from utils.inverted_index import build_inverted_index
-from utils.retrieval_score import RetrievalScore
-from utils.pytrec_evaluator import MetricsEvaluator, read_qrels
-from utils.manage_model import manage_model_params
-
-"""
-Testing and evaluating the model.
-"""
+from utils.helpers import manage_model_params
+from utils.evaluation_helpers import evaluate_model
+from utils.helpers import path_exists
 
 
-def evaluate_metrics(predicted_qrels, qrels, metrics):
-    evaluator = MetricsEvaluator(predicted_qrels, qrels)
-    return evaluator.evaluate(metrics)
+def check_rebuild(model_params):
+    rebuild_inverted_index = True
+    rebuild_retrieval_score = True
+
+    if path_exists(model_params["inverted_index"]) and not args.rerun_if_exists:
+        print("Inverted index already exists, won't be rebuild.")
+        rebuild_inverted_index = False
+
+    if path_exists(model_params["retrieval_score"]) and not args.rerun_if_exists:
+        print("Retrieval score already exists, won't be rebuild.")
+        rebuild_retrieval_score = False
+
+    return rebuild_inverted_index, rebuild_retrieval_score
 
 
 def run(args, model_params):
+    print("\nRunning training for {} ...".format(model_params["model_name"]))
+
+    rebuild_inverted_index, rebuild_retrieval_score = check_rebuild(model_params)
+
+    if not rebuild_inverted_index and not rebuild_retrieval_score:
+        return
+
     model = SNRM(
         learning_rate=model_params["learning_rate"],
         batch_size=model_params["batch_size"],
@@ -29,28 +41,24 @@ def run(args, model_params):
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,
     )
+
     # Load model from file
-    eval_loader = EvaluationLoader(args.test_docs, args.test_queries)
+    eval_loader = EvaluationLoader(args.test_docs, args.test_queries, args.test_qrels)
     model.load(model_params["model_pth"])
 
-    # Build inverted index
-    index = build_inverted_index(
-        model_params["batch_size"], model, eval_loader, model_params["inverted_index"]
-    )
-
-    # Estimate retrieval score for each document and each query
-    retrieval_score = RetrievalScore()
-    predicted_qrels = retrieval_score.evaluate(
-        eval_loader, index, model, model_params["batch_size"]
-    )
-    retrieval_score.dump(model_params["retrieval_score"])
-    print(predicted_qrels)
-
-    # Evaluate retrieval metrics
-    metrics = evaluate_metrics(
-        predicted_qrels, read_qrels(args.test_qrels), args.metrics
+    # Evaluate model
+    # If we need to rebuild inverted index, we also need to rebuild the retrieval score.
+    # If inverted index is built and we are on this stage, we need to rebuild the retrieval score anyway.
+    metrics = evaluate_model(
+        model_params,
+        model,
+        eval_loader,
+        args.test_metrics,
+        dump=True,
+        rebuild_inverted_index=rebuild_inverted_index,
     )
     print(metrics)
+    print("Finished training and validating for {}".format(model_params["model_name"]))
 
 
 if __name__ == "__main__":

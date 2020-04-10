@@ -28,6 +28,7 @@ class InvertedIndex:
     def read_index(self):
         with open(self.out_file, "r") as f:
             self.index = json.load(f)
+        self.index = {int(k): v for k, v in self.index.items()}
         return self.index
 
 
@@ -47,7 +48,7 @@ class InvertedIndex:
 """
 
 
-def build_inverted_index(batch_size, model, eval_loader, iidx_file):
+def build_inverted_index(batch_size, model, eval_loader, iidx_file, dump=False):
     print("Building inverted index started...")
     inverted_index = InvertedIndex(iidx_file)
     docs_len = eval_loader.docs_length()
@@ -57,6 +58,14 @@ def build_inverted_index(batch_size, model, eval_loader, iidx_file):
         repr = model.evaluate_repr(docs).detach().numpy()
         inverted_index.construct(doc_ids, repr)
         offset += batch_size
-    inverted_index.flush()
+    if dump:
+        inverted_index.flush()
     print("Inverted index is built!")
     return inverted_index
+
+
+def load_inverted_index(filename):
+    print("Loading existing inverted index from {}.".format(filename))
+    index = InvertedIndex(filename)
+    index.read_index()
+    return index

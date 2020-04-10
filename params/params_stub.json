@@ -12,15 +12,20 @@
     "qmax_len": 100,
     "dmax_len": 1000,
     "epochs": 3,
-    "metrics": [
+    "valid_metric": "P_20",
+    "test_metrics": [
         "map",
-        "ndcg"
+        "P_20",
+        "ndcg_cut_20",
+        "recall"
     ],
     "is_stub": 1,
     "save_mem": 1,
+    "rerun_if_exists": 0,
     "inverted_index": "inverted_index.csv",
     "retrieval_score": "retrieval_score.csv",
     "model_pth": "model.pth",
+    "model_checkpoint_pth": "model_checkpoint.pth",
     "models_folder": "./models/",
     "models": [
         {

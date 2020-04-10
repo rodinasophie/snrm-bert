@@ -1,6 +1,7 @@
 import pandas as pd
 import random
 import numpy as np
+from .pytrec_evaluator import read_qrels
 
 """
     EvaluationLoader is used to generate docs and queries batches
@@ -9,15 +10,25 @@ import numpy as np
 
 
 class EvaluationLoader:
-    def __init__(self, docs, queries, rs=0):
+    def __init__(
+        self, docs=None, queries=None, qrels=None, rs=0, df_docs=None, df_queries=None
+    ):
         random.seed(rs)
         self.doc_offset = 0
         self.query_offset = 0
-        self.__init_df(docs, queries)
+        self.qrels = qrels
+        self.__init_df(docs, queries, df_docs, df_queries)
 
-    def __init_df(self, docs, queries):
-        self.df_docs = pd.read_csv(docs, na_filter=False)
-        self.df_queries = pd.read_csv(queries, na_filter=False)
+    def __init_df(self, docs, queries, df_docs, df_queries):
+        if df_docs is None:
+            self.df_docs = pd.read_csv(docs, na_filter=False)
+        else:
+            self.df_docs = df_docs
+
+        if df_queries is None:
+            self.df_queries = pd.read_csv(queries, na_filter=False)
+        else:
+            self.df_queries = df_queries
 
         self.docs_len = self.df_docs.shape[0]
         self.queries_len = self.df_queries.shape[0]
@@ -56,6 +67,9 @@ class EvaluationLoader:
         self.doc_offset += size
         return np.asarray(doc_ids), np.asarray(docs)
 
-    def get_docs_by_query(self, q):
-        # TODO: q is query
-        pass
+    """
+        Generates qrels.
+    """
+
+    def generate_qrels(self):
+        return read_qrels(self.qrels)

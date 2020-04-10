@@ -5,7 +5,10 @@ from utils import TrainLoader
 import json
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
-from utils.manage_model import manage_model_params
+from utils.helpers import manage_model_params, path_exists
+from utils.evaluation_helpers import evaluate_model
+from utils.evaluation_loader import EvaluationLoader
+
 
 """
     Train the model during one epoch over the whole train set.
@@ -24,41 +27,85 @@ def train(model, train_loader, batch_size):
 
 """
     Validate the model after full epoch.
-    Overall validation loss is returned.
+    Overall validation loss is returned together with the validation metric.
 """
 
 
-def validate(model, train_loader, batch_size):
+def validate(model_params, model, train_loader, batch_size, valid_metric=None):
     while True:
-        validation_batch, is_end = train_loader.generate_valid_batch(batch_size)
+        validation_batch, is_end = train_loader.generate_valid_batch(
+            batch_size, irrelevant=True, force_keep=True
+        )
         _ = model.validate(validation_batch)
         if is_end:
             break
-    return model.get_loss("valid")
 
-
-"""
-    Saves the model with the minimal validation loss.
-"""
-
-
-def save_model_by_validloss(model_pth, model, valid_loss, min_loss, e):
-    if min_loss is None:
-        print("Initial model save for epoch: {}, valid_loss = {}".format(e, valid_loss))
-        min_loss = valid_loss
-        model.save(model_pth)
-
-    if valid_loss < min_loss:
-        print(
-            "Better model is found: valid_loss = {}, epoch = {}".format(valid_loss, e)
+    metric = None
+    if valid_metric is not None:
+        eval_loader = EvaluationLoader(
+            df_docs=train_loader.get_docs_ref(),
+            df_queries=train_loader.get_valid_queries_ref(),
+            qrels=train_loader.get_valid_qrels_name(),
         )
-        min_loss = valid_loss
+        metric = evaluate_model(
+            model_params, model, eval_loader, valid_metric, dump=False
+        )
+    train_loader.unload_all()
+    return model.get_loss("valid"), metric
+
+
+"""
+    Saves the model with the minimal given parameter.
+"""
+
+
+def save_model_by_param(model_pth, model, new_param, min_param, param_name, e):
+    if min_param is None:
+        print(
+            "Initial model save for epoch: {}, {} = {}".format(e, param_name, new_param)
+        )
+        min_param = new_param
         model.save(model_pth)
-    return min_loss
+
+    if new_param < min_param:
+        print(
+            "Better model is found: {} = {}, epoch = {}".format(
+                new_param, param_name, e
+            )
+        )
+        min_param = new_param
+        model.save(model_pth)
+    return min_param
 
 
-def save_model_by_eval(model, train_loader, batch_size):
-    pass
+"""
+    Save checkpoint for the case when training was interrupted by external error.
+    It's needed to start training again from the checkpoint instead of the very beginning.
+"""
+
+
+def save_checkpoint(model, path, epoch):
+    model.save_checkpoint(path, epoch)
+
+
+"""
+    Resume model from the last checkpoint if exists.
+"""
+
+
+def resume_model(model, checkpoint_pth, rerun_if_exists, epochs_num):
+    if not path_exists(checkpoint_pth):
+        print("Model will be trained from scratch.")
+        return True, 0
+
+    epoch, is_resumed = model.load_checkpoint(checkpoint_pth, epochs_num)
+
+    if not is_resumed and not rerun_if_exists:
+        print("Model exists and retraining is turned off, return old model.")
+        return False, _
+
+    print("Model resumed from epoch #", epoch)
+    return True, epoch
 
 
 """
@@ -67,26 +114,45 @@ Training and validating the model.
 
 
 def train_and_validate(args, model, model_params, train_loader):
+    batch_size = model_params["batch_size"]
+    is_resumed, start_epoch = resume_model(
+        model, model_params["model_checkpoint_pth"], args.rerun_if_exists, args.epochs
+    )
+    if not is_resumed:
+        return
+    epochs = range(start_epoch, args.epochs)
     writer = SummaryWriter(args.summary_folder)
 
-    batch_size = model_params["batch_size"]
-    epochs = args.epochs
-    min_loss = None
-    for e in range(epochs):
+    min_metric = None
+    for e in epochs:
         start = datetime.now()
         print("Training, epoch #", e)
         train_loss = train(model, train_loader, batch_size)
-        valid_loss = validate(model, train_loader, batch_size)
+        valid_loss, valid_metric = validate(
+            model_params, model, train_loader, batch_size, args.valid_metric
+        )
+        print(valid_metric)
         writer.add_scalars(
             model_params["model_name"],
-            {"Training loss": train_loss, "Validation loss": valid_loss},
+            {
+                "Training loss": train_loss,
+                "Validation loss": valid_loss,
+                "IR metric({})".format(args.valid_metric): valid_metric[
+                    args.valid_metric
+                ],
+            },
             e,
         )
-        min_loss = save_model_by_validloss(
-            model_params["model_pth"], model, valid_loss, min_loss, e
+        save_model_by_param(
+            model_params["model_pth"],
+            model,
+            valid_metric[args.valid_metric],
+            min_metric,
+            "IR metric: {}".format(args.valid_metric),
+            e,
         )
-        # TODO: save_model_by_eval?
 
+        save_checkpoint(model, model_params["model_checkpoint_pth"], e)
         model.reset_loss("train")
         model.reset_loss("valid")
         time = datetime.now() - start
@@ -98,7 +164,7 @@ def train_and_validate(args, model, model_params, train_loader):
 
 
 def run(args, model_params):
-    print("Running....")
+    print("\nRunning training for {} ...".format(model_params["model_name"]))
     model = SNRM(
         learning_rate=model_params["learning_rate"],
         batch_size=model_params["batch_size"],
@@ -120,6 +186,7 @@ def run(args, model_params):
     )
 
     train_and_validate(args, model, model_params, train_loader)
+    print("Finished training and validating for {}".format(model_params["model_name"]))
 
 
 if __name__ == "__main__":
@@ -133,7 +200,7 @@ if __name__ == "__main__":
     for key, val in params.items():
         parser.add_argument("--" + key, default=val)
     args = parser.parse_args()
-    print(args)
+    # print(args)
     models_to_train = list(args.models)
     for model in models_to_train:
         manage_model_params(args, model)

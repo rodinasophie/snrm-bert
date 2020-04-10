@@ -24,3 +24,8 @@ def manage_model_params(args, model):
     model["inverted_index"] = os.path.join(dir, args.inverted_index)
     model["retrieval_score"] = os.path.join(dir, args.retrieval_score)
     model["model_pth"] = os.path.join(dir, args.model_pth)
+    model["model_checkpoint_pth"] = os.path.join(dir, args.model_checkpoint_pth)
+
+
+def path_exists(path):
+    return os.path.exists(path)
