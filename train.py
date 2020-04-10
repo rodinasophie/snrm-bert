@@ -69,7 +69,8 @@ def save_model_by_param(
         best_param = new_param
         model.save(model_pth)
 
-    if new_param == eval_func(new_param, best_param):
+    best_eval = eval_func(new_param, best_param)
+    if new_param == best_eval and best_eval != best_param:
         print(
             "Better model is found: {} = {}, epoch = {}".format(
                 new_param, param_name, e
