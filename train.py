@@ -134,7 +134,6 @@ def train_and_validate(args, model, model_params, train_loader):
         valid_loss, valid_metric = validate(
             model_params, model, train_loader, batch_size, args.valid_metric
         )
-        print(valid_metric)
         writer.add_scalars(
             model_params["model_name"],
             {
@@ -163,6 +162,7 @@ def train_and_validate(args, model, model_params, train_loader):
         print("Execution time: ", time)
         print("Train loss: ", train_loss)
         print("Valid loss: ", valid_loss)
+        print("IR metric: ", valid_metric)
 
     writer.close()
 
