@@ -17,7 +17,7 @@
         "map",
         "P_20",
         "ndcg_cut_20",
-        "recall"
+        "recall_100"
     ],
     "is_stub": 1,
     "save_mem": 1,

@@ -48,7 +48,7 @@ def validate(model_params, model, train_loader, batch_size, valid_metric=None):
             qrels=train_loader.get_valid_qrels_name(),
         )
         metric = evaluate_model(
-            model_params, model, eval_loader, valid_metric, dump=False
+            model_params, model, eval_loader, [valid_metric], dump=False
         )
     train_loader.unload_all()
     return model.get_loss("valid"), metric
@@ -59,23 +59,25 @@ def validate(model_params, model, train_loader, batch_size, valid_metric=None):
 """
 
 
-def save_model_by_param(model_pth, model, new_param, min_param, param_name, e):
-    if min_param is None:
+def save_model_by_param(
+    model_pth, model, new_param, best_param, param_name, e, eval_func
+):
+    if best_param is None:
         print(
             "Initial model save for epoch: {}, {} = {}".format(e, param_name, new_param)
         )
-        min_param = new_param
+        best_param = new_param
         model.save(model_pth)
 
-    if new_param < min_param:
+    if new_param == eval_func(new_param, best_param):
         print(
             "Better model is found: {} = {}, epoch = {}".format(
                 new_param, param_name, e
             )
         )
-        min_param = new_param
+        best_param = new_param
         model.save(model_pth)
-    return min_param
+    return best_param
 
 
 """
@@ -123,7 +125,7 @@ def train_and_validate(args, model, model_params, train_loader):
     epochs = range(start_epoch, args.epochs)
     writer = SummaryWriter(args.summary_folder)
 
-    min_metric = None
+    best_metric = None
     for e in epochs:
         start = datetime.now()
         print("Training, epoch #", e)
@@ -143,13 +145,14 @@ def train_and_validate(args, model, model_params, train_loader):
             },
             e,
         )
-        save_model_by_param(
+        best_metric = save_model_by_param(
             model_params["model_pth"],
             model,
             valid_metric[args.valid_metric],
-            min_metric,
+            best_metric,
             "IR metric: {}".format(args.valid_metric),
             e,
+            max,
         )
 
         save_checkpoint(model, model_params["model_checkpoint_pth"], e)
