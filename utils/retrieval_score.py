@@ -61,7 +61,7 @@ class RetrievalScore:
         if not self.is_evaluated:
             print("Retrieval score is not yet evaluated")
         else:
-            dump(Self.retrieval_score, filename)
+            dump(self.retrieval_score, filename)
 
     """
         Read retrieval score to dict.

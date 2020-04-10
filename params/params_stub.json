@@ -50,6 +50,17 @@
             ],
             "reg_lambda": 1e-7,
             "drop_prob": 0.6
+        },
+        {
+            "batch_size": 5,
+            "learning_rate": 1e-5,
+            "layers": [
+                300,
+                200,
+                1000
+            ],
+            "reg_lambda": 1e-7,
+            "drop_prob": 0.8
         }
     ]
 }

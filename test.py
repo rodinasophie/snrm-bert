@@ -3,7 +3,7 @@ import json
 from utils import EvaluationLoader
 from snrm import SNRM
 from utils.helpers import manage_model_params
-from utils.evaluation_helpers import evaluate_model, evaluate_metrics
+from utils.evaluation_helpers import evaluate_model
 from utils.helpers import path_exists, load_file
 
 
