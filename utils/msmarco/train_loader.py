@@ -1,7 +1,6 @@
 import pandas as pd
 import random
 import numpy as np
-from .evaluation_loader import EvaluationLoader
 
 """
     TrainLoader is responsible for triples generation

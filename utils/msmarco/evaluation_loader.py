@@ -1,7 +1,7 @@
 import pandas as pd
 import random
 import numpy as np
-from .pytrec_evaluator import read_qrels
+from ..pytrec_evaluator import read_qrels
 
 """
     EvaluationLoader is used to generate docs and queries batches

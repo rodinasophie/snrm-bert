@@ -1,0 +1,66 @@
+{
+    "docs": "/home/mrim/data/collection/msmarco/documents/msmarco-docs.tsv.gz",
+    "train_queries": "/home/mrim/data/collection/msmarco/documents/",
+    "train_qrels": "/home/mrim/data/collection/msmarco/documents/",
+    "valid_queries": "/home/mrim/data/collection/msmarco/documents/",
+    "valid_qrels": "/home/mrim/data/collection/msmarco/documents/",
+    "test_docs": "/home/mrim/data/collection/msmarco/documents/",
+    "test_queries": "/home/mrim/data/collection/msmarco/documents/",
+    "test_qrels": "/home/mrim/data/collection/msmarco/documents/",
+    "embeddings": "/home/mrim/data/embeddings/cc.ru.300.bin",
+    "summary_folder": "./snrm-summary/",
+    "qmax_len": 100,
+    "dmax_len": 1000,
+    "epochs": 3,
+    "valid_metric": "P_20",
+    "test_metrics": [
+        "map",
+        "P_20",
+        "ndcg_cut_20",
+        "recall_100"
+    ],
+    "is_stub": 1,
+    "save_mem": 1,
+    "rerun_if_exists": 0,
+    "inverted_index": "inverted_index.csv",
+    "retrieval_score": "retrieval_score.csv",
+    "final_metrics": "final_metrics.csv",
+    "model_pth": "model.pth",
+    "model_checkpoint_pth": "model_checkpoint.pth",
+    "models_folder": "./msmarco_docs_models/",
+    "models": [
+        {
+            "batch_size": 5,
+            "learning_rate": 5e-5,
+            "layers": [
+                300,
+                200,
+                5000
+            ],
+            "reg_lambda": 1e-7,
+            "drop_prob": 0.6
+        },
+        {
+            "batch_size": 5,
+            "learning_rate": 3e-5,
+            "layers": [
+                300,
+                200,
+                3000
+            ],
+            "reg_lambda": 1e-7,
+            "drop_prob": 0.6
+        },
+        {
+            "batch_size": 5,
+            "learning_rate": 1e-5,
+            "layers": [
+                300,
+                200,
+                1000
+            ],
+            "reg_lambda": 1e-7,
+            "drop_prob": 0.8
+        }
+    ]
+}
