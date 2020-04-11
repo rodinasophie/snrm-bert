@@ -1,4 +1,5 @@
 {
+    "dataset": "stub",
     "docs": "stub_data/train/docs.csv",
     "train_queries": "stub_data/train/queries.csv",
     "train_qrels": "stub_data/train/qrels",
@@ -21,7 +22,7 @@
     ],
     "is_stub": 1,
     "save_mem": 1,
-    "rerun_if_exists": 0,
+    "rerun_if_exists": 1,
     "inverted_index": "inverted_index.csv",
     "retrieval_score": "retrieval_score.csv",
     "final_metrics": "final_metrics.csv",

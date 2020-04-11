@@ -1,13 +1,11 @@
 import argparse
 
 from snrm import SNRM
-from utils.msmarco.train_loader import TrainLoader
 import json
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 from utils.helpers import manage_model_params, path_exists
 from utils.evaluation_helpers import evaluate_model
-from utils.msmarco.evaluation_loader import EvaluationLoader
 
 
 """
@@ -42,7 +40,7 @@ def validate(model_params, model, train_loader, batch_size, valid_metric=None):
 
     metric = None
     if valid_metric is not None:
-        eval_loader = EvaluationLoader(
+        eval_loader = dataset.evaluation_loader.EvaluationLoader(
             df_docs=train_loader.get_docs_ref(),
             df_queries=train_loader.get_valid_queries_ref(),
             qrels=train_loader.get_valid_qrels_name(),
@@ -180,7 +178,7 @@ def run(args, model_params):
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,
     )
-    train_loader = TrainLoader(
+    train_loader = dataset.train_loader.TrainLoader(
         args.docs,
         args.train_queries,
         args.train_qrels,
@@ -191,6 +189,11 @@ def run(args, model_params):
 
     train_and_validate(args, model, model_params, train_loader)
     print("Finished training and validating for {}".format(model_params["model_name"]))
+
+
+def setup(module):
+    global dataset
+    dataset = __import__(module, fromlist=["object"])
 
 
 if __name__ == "__main__":
@@ -204,7 +207,8 @@ if __name__ == "__main__":
     for key, val in params.items():
         parser.add_argument("--" + key, default=val)
     args = parser.parse_args()
-    # print(args)
+
+    setup(".".join(["utils", args.dataset]))
     models_to_train = list(args.models)
     for model in models_to_train:
         manage_model_params(args, model)

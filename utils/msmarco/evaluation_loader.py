@@ -21,12 +21,20 @@ class EvaluationLoader:
 
     def __init_df(self, docs, queries, df_docs, df_queries):
         if df_docs is None:
-            self.df_docs = pd.read_csv(docs, header=None, names = ["id_right", "text_right"], sep = '\t', na_filter=False)
+            self.df_docs = pd.read_csv(
+                docs,
+                header=None,
+                names=["id_right", "text_right"],
+                sep="\t",
+                na_filter=False,
+            )
         else:
             self.df_docs = df_docs
 
         if df_queries is None:
-            self.df_queries = pd.read_csv(queries, header = None, sep = '\t', na_filter=False)
+            self.df_queries = pd.read_csv(
+                queries, header=None, sep="\t", na_filter=False
+            )
         else:
             self.df_queries = df_queries
 

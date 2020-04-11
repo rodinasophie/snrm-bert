@@ -14,7 +14,7 @@ class InvertedIndex:
                 if doc_repres[i][j] > 0.0:
                     if j not in self.index:
                         self.index[j] = []
-                    self.index[j].append([int(doc_ids[i]), doc_repres[i][j].item()])
+                    self.index[j].append([str(doc_ids[i]), doc_repres[i][j].item()])
 
     def get_index(self):
         return self.index
@@ -28,7 +28,7 @@ class InvertedIndex:
     def read_index(self):
         with open(self.out_file, "r") as f:
             self.index = json.load(f)
-        self.index = {int(k): v for k, v in self.index.items()}
+        self.index = {k: v for k, v in self.index.items()}
         return self.index
 
 

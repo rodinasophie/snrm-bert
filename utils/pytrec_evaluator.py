@@ -16,7 +16,8 @@ class MetricsEvaluator:
     def evaluate(self, metrics):
         if platform.system().lower().startswith("win"):
             print("Cannot evaluate result, windows platform.")
-            return dict({"P_20": 0.1})
+            self.final_measures = dict({"stub_metric": 0.1})
+            return self.final_measures
 
         evaluator = pytrec_eval.RelevanceEvaluator(self.qrels, set(self.all_metrics))
         results = evaluator.evaluate(self.predicted_qrels)

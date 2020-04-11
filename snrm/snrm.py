@@ -66,9 +66,7 @@ class SNRM:
             self.autoencoder.parameters(), lr=learning_rate, momentum=0.9
         )
 
-        self.device = (
-            torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        )
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("Device to use:", self.device)
 
         if torch.cuda.device_count() > 1:
