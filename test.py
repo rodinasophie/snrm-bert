@@ -1,6 +1,6 @@
 import argparse
 import json
-from utils.stub.evaluation_loader import EvaluationLoader
+from utils.msmarco.evaluation_loader import EvaluationLoader
 from snrm import SNRM
 from utils.helpers import manage_model_params
 from utils.evaluation_helpers import evaluate_model

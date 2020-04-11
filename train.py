@@ -1,13 +1,13 @@
 import argparse
 
 from snrm import SNRM
-from utils.stub.train_loader import TrainLoader
+from utils.msmarco.train_loader import TrainLoader
 import json
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 from utils.helpers import manage_model_params, path_exists
 from utils.evaluation_helpers import evaluate_model
-from utils.stub.evaluation_loader import EvaluationLoader
+from utils.msmarco.evaluation_loader import EvaluationLoader
 
 
 """

@@ -67,13 +67,13 @@ class SNRM:
         )
 
         self.device = (
-            "cpu"  # torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         )
         print("Device to use:", self.device)
 
-        # if torch.cuda.device_count() > 1:
-        #    print("Let's use", torch.cuda.device_count(), "GPUs!")
-        #    self.autoencoder = nn.DataParallel(self.autoencoder)
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            self.autoencoder = nn.DataParallel(self.autoencoder)
 
         self.autoencoder.to(self.device)
 

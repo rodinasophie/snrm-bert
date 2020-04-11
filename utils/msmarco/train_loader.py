@@ -37,8 +37,9 @@ class TrainLoader:
     """
 
     def __load_docs(self, docs):
-        self.df_docs = pd.read_csv(docs, na_filter=False)
+        self.df_docs = pd.read_csv(docs, sep='\t', header=None, names = ["id_right", "text_right"], na_filter=False)
         self.docs_len = self.df_docs.shape[0]
+        print("Documents are loaded in train_loader")
 
     """
         Loads train queries and qrels into the memory.
@@ -46,9 +47,9 @@ class TrainLoader:
 
     def __load_trainset(self):
         self.train_offset = 0
-        self.df_train_queries = pd.read_csv(self.train_queries, na_filter=False)
+        self.df_train_queries = pd.read_csv(self.train_queries, sep="\t", names= ["id_left", "text_left"], na_filter=False, header=None)
         self.df_train_qrels = pd.read_csv(
-            self.train_qrels, sep="\t", na_filter=False, header=None
+            self.train_qrels, sep=" ", na_filter=False, header=None
         )
         self.is_trainset_loaded = True
         print("Training set is loaded to memory.")
@@ -59,9 +60,9 @@ class TrainLoader:
 
     def __load_validset(self):
         self.valid_offset = 0
-        self.df_valid_queries = pd.read_csv(self.valid_queries, na_filter=False)
+        self.df_valid_queries = pd.read_csv(self.valid_queries, sep='\t', header=None, names = ["id_left", "text_left"], na_filter=False)
         self.df_valid_qrels = pd.read_csv(
-            self.valid_qrels, sep="\t", na_filter=False, header=None
+            self.valid_qrels, sep=" ", na_filter=False, header=None
         )
         self.is_validset_loaded = True
         print("Validation set is loaded to memory.")
