@@ -19,9 +19,12 @@ def train(model, train_loader, batch_size):
     while True:
         start = datetime.now()
         train_batch, is_end = train_loader.generate_train_batch(batch_size)
-        _ = model.train(train_batch)
-        count += 1
         time = datetime.now() - start
+        print("Training generate_batch: time: {}".format(time))
+        start = datetime.now()
+        _ = model.train(train_batch)
+        time = datetime.now() - start
+        count += 1
         print("Training count: {}, time: {}".format(count, time))
         if is_end:
             break
