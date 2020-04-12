@@ -15,9 +15,17 @@ from utils.evaluation_helpers import evaluate_model
 
 
 def train(model, train_loader, batch_size):
+    count = 0
     while True:
+        start = datetime.now()
         train_batch, is_end = train_loader.generate_train_batch(batch_size)
+        time = datetime.now() - start
+        print("Training generate_batch: time: {}".format(time))
+        start = datetime.now()
         _ = model.train(train_batch)
+        time = datetime.now() - start
+        count += 1
+        print("Training count: {}, time: {}".format(count, time))
         if is_end:
             break
     return model.get_loss("train")
