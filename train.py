@@ -15,9 +15,14 @@ from utils.evaluation_helpers import evaluate_model
 
 
 def train(model, train_loader, batch_size):
+    count = 0
     while True:
+        start = datetime.now()
         train_batch, is_end = train_loader.generate_train_batch(batch_size)
         _ = model.train(train_batch)
+        count += 1
+        time = datetime.now() - start
+        print("Training count: {}, time: {}".format(count, time))
         if is_end:
             break
     return model.get_loss("train")
@@ -180,6 +185,7 @@ def run(args, model_params):
     )
     train_loader = dataset.train_loader.TrainLoader(
         args.docs,
+        args.docs_lookup,
         args.train_queries,
         args.train_qrels,
         args.valid_queries,
@@ -188,6 +194,7 @@ def run(args, model_params):
     )
 
     train_and_validate(args, model, model_params, train_loader)
+    train_loader.finalize()
     print("Finished training and validating for {}".format(model_params["model_name"]))
 
 

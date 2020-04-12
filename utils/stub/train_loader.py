@@ -17,7 +17,14 @@ import numpy as np
 
 class TrainLoader:
     def __init__(
-        self, docs, train_queries, train_qrels, valid_queries, valid_qrels, save_mem
+        self,
+        docs,
+        docs_lookup,
+        train_queries,
+        train_qrels,
+        valid_queries,
+        valid_qrels,
+        save_mem,
     ):
         self.train_queries = train_queries
         self.train_qrels = train_qrels
@@ -30,13 +37,13 @@ class TrainLoader:
         self.is_trainset_loaded = False
         self.is_validset_loaded = False
 
-        self.__load_docs(docs)
+        self.__load_docs(docs, docs_lookup)
 
     """
         Loads the documents into the memory.
     """
 
-    def __load_docs(self, docs):
+    def __load_docs(self, docs, docs_lookup):
         self.df_docs = pd.read_csv(docs, na_filter=False)
         self.docs_len = self.df_docs.shape[0]
 
@@ -219,3 +226,6 @@ class TrainLoader:
         if self.save_mem:
             self.__unload_validset()
             self.__unload_trainset()
+
+    def finalize(self):
+        pass

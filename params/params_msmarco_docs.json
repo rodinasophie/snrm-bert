@@ -1,6 +1,7 @@
 {
     "dataset": "msmarco",
     "docs": "/home/mrim/data/collection/msmarco/documents/msmarco-docs-cut.tsv",
+    "docs_lookup": "/home/mrim/data/collection/msmarco/documents/msmarco-docs-lookup.tsv",
     "train_queries": "/home/mrim/data/collection/msmarco/documents/train/msmarco-doctrain-queries.tsv",
     "train_qrels": "/home/mrim/data/collection/msmarco/documents/train/msmarco-doctrain-qrels.tsv",
     "valid_queries": "/home/mrim/data/collection/msmarco/documents/dev/msmarco-docdev-queries.tsv",

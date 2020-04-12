@@ -73,3 +73,6 @@ class EvaluationLoader:
 
     def generate_qrels(self):
         return read_qrels(self.qrels)
+
+    def finalize(self):
+        pass

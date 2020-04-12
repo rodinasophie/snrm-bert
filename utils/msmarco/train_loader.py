@@ -1,5 +1,6 @@
 import pandas as pd
 import random
+import csv
 import numpy as np
 
 """
@@ -17,7 +18,14 @@ import numpy as np
 
 class TrainLoader:
     def __init__(
-        self, docs, train_queries, train_qrels, valid_queries, valid_qrels, save_mem
+        self,
+        docs,
+        docs_lookup,
+        train_queries,
+        train_qrels,
+        valid_queries,
+        valid_qrels,
+        save_mem,
     ):
         self.train_queries = train_queries
         self.train_qrels = train_qrels
@@ -30,22 +38,34 @@ class TrainLoader:
         self.is_trainset_loaded = False
         self.is_validset_loaded = False
 
-        self.__load_docs(docs)
+        random.seed(0)
+        self.__load_docs(docs, docs_lookup)
 
     """
         Loads the documents into the memory.
     """
 
-    def __load_docs(self, docs):
-        self.df_docs = pd.read_csv(
-            docs,
-            sep="\t",
-            header=None,
-            names=["id_right", "text_right"],
-            na_filter=False,
-        )
-        self.docs_len = self.df_docs.shape[0]
+    def __load_docs(self, docs, docs_lookup):
+        self.doc_offset = dict()
+        with open(docs_lookup, "r", encoding="utf8") as f:
+            tsvreader = csv.reader(f, delimiter="\t")
+            for [docid, _, offset] in tsvreader:
+                self.doc_offset[docid] = int(offset)
+
+        self.docs_len = len(self.doc_offset)
+        self.docs_file = open(docs, "r", encoding="utf8")
+
         print("Documents are loaded in train_loader")
+
+    """
+        Efficiently searches for a doc_id in docs file.
+    """
+
+    def __get_content(self, doc_id):
+        self.docs_file.seek(self.doc_offset[doc_id])
+        line = self.docs_file.readline()
+        assert line.startswith(doc_id + "\t"), f"Looking for {doc_id}, found {line}"
+        return line.rstrip().split("\t")[1]
 
     """
         Loads train queries and qrels into the memory.
@@ -136,17 +156,11 @@ class TrainLoader:
             sample.append(
                 df_queries.loc[df_queries["id_left"] == qrel[0]]["text_left"].values[0]
             )
+            sample.append(self.__get_content(qrel[2]))
 
-            sample.append(
-                self.df_docs.loc[self.df_docs["id_right"] == qrel[2]][
-                    "text_right"
-                ].values[0]
-            )
             if irrelevant:
                 sample.append(
-                    self.df_docs.loc[self.__randidx(0, self.docs_len - 1, qrel[2])][
-                        "text_right"
-                    ]
+                    self.__get_content(self.__randidx(0, self.docs_len - 1, qrel[2]))
                 )
             offset += 1
             batch.append(sample)
@@ -210,7 +224,7 @@ class TrainLoader:
     """
 
     def get_docs_ref(self):
-        return self.df_docs
+        return self.docs_file
 
     """
         Return valid queries ref.
@@ -238,3 +252,6 @@ class TrainLoader:
         if self.save_mem:
             self.__unload_validset()
             self.__unload_trainset()
+
+    def finalize(self):
+        self.docs_file.close()

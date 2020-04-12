@@ -1,5 +1,4 @@
 import pandas as pd
-import random
 import numpy as np
 from ..pytrec_evaluator import read_qrels
 
@@ -11,25 +10,18 @@ from ..pytrec_evaluator import read_qrels
 
 class EvaluationLoader:
     def __init__(
-        self, docs=None, queries=None, qrels=None, rs=0, df_docs=None, df_queries=None
+        self, docs=None, queries=None, qrels=None, rs=0, docs_file=None, df_queries=None
     ):
-        random.seed(rs)
         self.doc_offset = 0
         self.query_offset = 0
         self.qrels = qrels
-        self.__init_df(docs, queries, df_docs, df_queries)
+        self.__init_df(docs, queries, docs_file, df_queries)
 
-    def __init_df(self, docs, queries, df_docs, df_queries):
-        if df_docs is None:
-            self.df_docs = pd.read_csv(
-                docs,
-                header=None,
-                names=["id_right", "text_right"],
-                sep="\t",
-                na_filter=False,
-            )
+    def __init_df(self, docs, queries, docs_file, df_queries):
+        if docs_file is None:
+            self.docs_file = open(docs, "r", encoding="utf-8")
         else:
-            self.df_docs = df_docs
+            self.docs_file = docs_file
 
         if df_queries is None:
             self.df_queries = pd.read_csv(
@@ -38,7 +30,7 @@ class EvaluationLoader:
         else:
             self.df_queries = df_queries
 
-        self.docs_len = self.df_docs.shape[0]
+        self.docs_len = sum(1 for line in self.docs_file)
         self.queries_len = self.df_queries.shape[0]
 
     def docs_length(self):
@@ -69,9 +61,12 @@ class EvaluationLoader:
         doc_ids = []
         docs = []
         end = min(self.doc_offset + size, self.docs_len)
-        for i in range(self.doc_offset, end):
-            doc_ids.append(self.df_docs.loc[i]["id_right"])
-            docs.append(self.df_docs.loc[i]["text_right"])
+        self.docs_file.seek(self.doc_offset)
+        for _ in range(self.doc_offset, end):
+            line = self.docs_file.readline().rstrip().split("\t")
+            doc_ids.append(line[0])
+            docs.append(line[1])
+
         self.doc_offset += size
         return np.asarray(doc_ids), np.asarray(docs)
 
@@ -81,3 +76,6 @@ class EvaluationLoader:
 
     def generate_qrels(self):
         return read_qrels(self.qrels)
+
+    def finalize(self):
+        self.docs_file.close()
