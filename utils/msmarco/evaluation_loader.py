@@ -10,28 +10,23 @@ from ..pytrec_evaluator import read_qrels
 
 class EvaluationLoader:
     def __init__(
-        self, docs=None, queries=None, qrels=None, rs=0, docs_file=None, df_queries=None
+        self, docs, queries=None, qrels=None, rs=0, df_queries=None
     ):
         self.doc_offset = 0
         self.query_offset = 0
         self.qrels = qrels
-        self.__init_df(docs, queries, docs_file, df_queries)
+        
+        self.__init_df(docs, queries, df_queries)
 
-    def __init_df(self, docs, queries, docs_file, df_queries):
-        if docs_file is None:
-            self.docs_file = open(docs, "r", encoding="utf-8")
-        else:
-            self.docs_file = docs_file
-
-        if df_queries is None:
-            self.df_queries = pd.read_csv(
-                queries, header=None, sep="\t", na_filter=False
-            )
-        else:
-            self.df_queries = df_queries
-
-        self.docs_len = sum(1 for line in self.docs_file)
-        self.queries_len = self.df_queries.shape[0]
+    def __init_df(self, docs, queries, df_queries):
+       self.docs_file = open(docs, "rt", encoding="utf8")
+       self.docs_len = sum(1 for line in self.docs_file)
+       
+       if df_queries is None:
+           self.df_queries = pd.read_csv(queries, header=None, sep="\t", na_filter=False)
+       else:
+           self.df_queries = df_queries
+       self.queries_len = self.df_queries.shape[0]
 
     def docs_length(self):
         return self.docs_len
@@ -61,11 +56,12 @@ class EvaluationLoader:
         doc_ids = []
         docs = []
         end = min(self.doc_offset + size, self.docs_len)
-        self.docs_file.seek(self.doc_offset)
+        self.docs_file.seek(self.doc_offset) 
+            
         for _ in range(self.doc_offset, end):
-            line = self.docs_file.readline().rstrip().split("\t")
-            doc_ids.append(line[0])
-            docs.append(line[1])
+            doc_id, doc = self.docs_file.readline().rstrip().split("\t", 1)
+            doc_ids.append(doc_id)
+            docs.append(doc)
 
         self.doc_offset += size
         return np.asarray(doc_ids), np.asarray(docs)

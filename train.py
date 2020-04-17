@@ -15,17 +15,9 @@ from utils.evaluation_helpers import evaluate_model
 
 
 def train(model, train_loader, batch_size):
-    count = 0
     while True:
-        start = datetime.now()
         train_batch, is_end = train_loader.generate_train_batch(batch_size)
-        time = datetime.now() - start
-        print("Training generate_batch: time: {}".format(time))
-        start = datetime.now()
         _ = model.train(train_batch)
-        time = datetime.now() - start
-        count += 1
-        print("Training count: {}, time: {}".format(count, time))
         if is_end:
             break
     return model.get_loss("train")
@@ -37,7 +29,7 @@ def train(model, train_loader, batch_size):
 """
 
 
-def validate(model_params, model, train_loader, batch_size, valid_metric=None):
+def validate(model_params, model, train_loader, batch_size, docs_filename, valid_metric=None):
     while True:
         validation_batch, is_end = train_loader.generate_valid_batch(
             batch_size, irrelevant=True, force_keep=True
@@ -49,7 +41,7 @@ def validate(model_params, model, train_loader, batch_size, valid_metric=None):
     metric = None
     if valid_metric is not None:
         eval_loader = dataset.evaluation_loader.EvaluationLoader(
-            df_docs=train_loader.get_docs_ref(),
+            docs=docs_filename,
             df_queries=train_loader.get_valid_queries_ref(),
             qrels=train_loader.get_valid_qrels_name(),
         )
@@ -138,7 +130,7 @@ def train_and_validate(args, model, model_params, train_loader):
         print("Training, epoch #", e)
         train_loss = train(model, train_loader, batch_size)
         valid_loss, valid_metric = validate(
-            model_params, model, train_loader, batch_size, args.valid_metric
+            model_params, model, train_loader, batch_size, args.docs, args.valid_metric
         )
         writer.add_scalars(
             model_params["model_name"],
@@ -188,7 +180,6 @@ def run(args, model_params):
     )
     train_loader = dataset.train_loader.TrainLoader(
         args.docs,
-        args.docs_lookup,
         args.train_queries,
         args.train_qrels,
         args.valid_queries,

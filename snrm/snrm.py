@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch
-
+from datetime import datetime
 
 # TODO: use built-in embedding layers?
 
@@ -17,15 +17,17 @@ class Embeddings:
             self.model = fasttext.load_model(emb_file)
 
     def matrix(self, text, max_len):
+        start = datetime.now()
         words = text.split()
         matrix = np.empty(())
         dim = self.model.get_dimension() if not self.is_stub else 300
-
+        
         matrix = np.zeros((max_len, dim))
         for i in range(min(len(words), max_len)):
             matrix[i] = (
                 self.model[words[i]] if not self.is_stub else np.random.choice(100, dim)
             )
+        print("Matrix build time: {}".format(datetime.now() - start))
         return matrix
 
 

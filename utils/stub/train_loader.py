@@ -19,7 +19,6 @@ class TrainLoader:
     def __init__(
         self,
         docs,
-        docs_lookup,
         train_queries,
         train_qrels,
         valid_queries,
@@ -37,13 +36,13 @@ class TrainLoader:
         self.is_trainset_loaded = False
         self.is_validset_loaded = False
 
-        self.__load_docs(docs, docs_lookup)
+        self.__load_docs(docs)
 
     """
         Loads the documents into the memory.
     """
 
-    def __load_docs(self, docs, docs_lookup):
+    def __load_docs(self, docs):
         self.df_docs = pd.read_csv(docs, na_filter=False)
         self.docs_len = self.df_docs.shape[0]
 

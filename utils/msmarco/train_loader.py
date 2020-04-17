@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import datetime
 import random
 import csv
 import numpy as np
@@ -20,7 +21,6 @@ class TrainLoader:
     def __init__(
         self,
         docs,
-        docs_lookup,
         train_queries,
         train_qrels,
         valid_queries,
@@ -39,22 +39,22 @@ class TrainLoader:
         self.is_validset_loaded = False
 
         random.seed(0)
-        self.__load_docs(docs, docs_lookup)
+        self.__load_docs(docs)
 
     """
         Loads the documents into the memory.
     """
 
-    def __load_docs(self, docs, docs_lookup):
-        self.doc_offset = dict()
-        with open(docs_lookup, "r", encoding="utf8") as f:
-            tsvreader = csv.reader(f, delimiter="\t")
-            for [docid, _, offset] in tsvreader:
-                self.doc_offset[docid] = int(offset)
+    def __load_docs(self, docs):
+        self.docs_file = open(docs, "rt", encoding="utf8")
+        self.docs_dict = dict()
 
-        self.docs_len = len(self.doc_offset)
-        self.docs_file = open(docs, "r", encoding="utf8")
-
+        for line in self.docs_file:
+            doc_id, doc = line.rstrip().split("\t")
+            self.docs_dict[doc_id] = doc
+        
+        self.docs_len = len(self.docs_dict)
+        self.docs_file.close()
         print("Documents are loaded in train_loader")
 
     """
@@ -62,10 +62,7 @@ class TrainLoader:
     """
 
     def __get_content(self, doc_id):
-        self.docs_file.seek(self.doc_offset[doc_id])
-        line = self.docs_file.readline()
-        assert line.startswith(doc_id + "\t"), f"Looking for {doc_id}, found {line}"
-        return line.rstrip().split("\t")[1]
+        return self.docs_dict[doc_id]
 
     """
         Loads train queries and qrels into the memory.
@@ -135,9 +132,9 @@ class TrainLoader:
         Generates a random number from (a, b) except val.
     """
 
-    def __randidx(self, a, b, val):
+    def __rand_doc(self, val):
         while True:
-            x = random.randint(a, b)
+            x = random.choice(list(self.docs_dict.keys()))
             if x != val:
                 return x
 
@@ -151,17 +148,26 @@ class TrainLoader:
         new_offset = min(offset + batch_size, qrels_len)
         is_end = True if new_offset == qrels_len else False
         for i in range(offset, new_offset):
+            #start = datetime.now()
             sample = []
             qrel = df_qrels.loc[i]  # id_query, 0, id_doc
             sample.append(
                 df_queries.loc[df_queries["id_left"] == qrel[0]]["text_left"].values[0]
             )
+            #time = datetime.now() - start
+            #print("Time 1: {}".format(time))
+            #start = datetime.now()
             sample.append(self.__get_content(qrel[2]))
+           # time = datetime.now() - start
+            #print("Time 2: {}".format(time))
 
+            #start = datetime.now()
             if irrelevant:
                 sample.append(
-                    self.__get_content(self.__randidx(0, self.docs_len - 1, qrel[2]))
+                    self.__get_content(qrel[2])
                 )
+            #time = datetime.now() - start
+            #print("Time 3: {}".format(time))
             offset += 1
             batch.append(sample)
         return batch, is_end, offset
@@ -219,12 +225,6 @@ class TrainLoader:
 
         return batch, is_end
 
-    """
-        Return docs ref to store memory.
-    """
-
-    def get_docs_ref(self):
-        return self.docs_file
 
     """
         Return valid queries ref.

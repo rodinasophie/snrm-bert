@@ -1,7 +1,6 @@
 {
     "dataset": "stub",
     "docs": "stub_data/train/docs.csv",
-    "docs_lookup": "",
     "train_queries": "stub_data/train/queries.csv",
     "train_qrels": "stub_data/train/qrels",
     "valid_queries": "stub_data/valid/queries.csv",

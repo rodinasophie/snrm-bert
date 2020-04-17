@@ -1,6 +1,5 @@
 import argparse
 import json
-from utils.stub.evaluation_loader import EvaluationLoader
 from snrm import SNRM
 from utils.helpers import manage_model_params
 from utils.evaluation_helpers import evaluate_model
@@ -45,7 +44,7 @@ def run(args, model_params):
     )
 
     # Load model from file
-    eval_loader = EvaluationLoader(args.test_docs, args.test_queries, args.test_qrels)
+    eval_loader = dataset.evaluation_loader.EvaluationLoader(args.test_docs, args.test_queries, args.test_qrels)
     model.load(model_params["model_pth"])
 
     # Evaluate model
@@ -67,7 +66,6 @@ def run(args, model_params):
 def setup(module):
     global dataset
     dataset = __import__(module, fromlist=["object"])
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
