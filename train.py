@@ -16,7 +16,10 @@ from utils.evaluation_helpers import evaluate_model
 
 def train(model, train_loader, batch_size):
     while True:
+        start = datetime.now()
         train_batch, is_end = train_loader.generate_train_batch(batch_size)
+        time = datetime.now() - start
+        print("Batch generation time: {}".format(time), flush=True)
         _ = model.train(train_batch)
         if is_end:
             break
@@ -29,7 +32,9 @@ def train(model, train_loader, batch_size):
 """
 
 
-def validate(model_params, model, train_loader, batch_size, docs_filename, valid_metric=None):
+def validate(
+    model_params, model, train_loader, batch_size, docs_filename, valid_metric=None
+):
     while True:
         validation_batch, is_end = train_loader.generate_valid_batch(
             batch_size, irrelevant=True, force_keep=True
