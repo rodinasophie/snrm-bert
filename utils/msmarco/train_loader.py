@@ -50,8 +50,11 @@ class TrainLoader:
         self.docs_dict = dict()
 
         for line in self.docs_file:
-            doc_id, doc = line.rstrip().split("\t")
-            self.docs_dict[doc_id] = doc
+            l = line.rstrip().split("\t")
+            if len(l) == 2:
+                l.append("")
+            doc_id, irr_doc_id, doc = l
+            self.docs_dict[doc_id] = (doc, irr_doc_id)
         
         self.docs_len = len(self.docs_dict)
         self.docs_file.close()
@@ -128,15 +131,6 @@ class TrainLoader:
         self.is_validset_loaded = False
         print("Validation set is released.")
 
-    """
-        Generates a random number from (a, b) except val.
-    """
-
-    def __rand_doc(self, val):
-        while True:
-            x = random.choice(list(self.docs_dict.keys()))
-            if x != val:
-                return x
 
     """
         General function for batch generation.
@@ -148,28 +142,22 @@ class TrainLoader:
         new_offset = min(offset + batch_size, qrels_len)
         is_end = True if new_offset == qrels_len else False
         for i in range(offset, new_offset):
-            #start = datetime.now()
             sample = []
             qrel = df_qrels.loc[i]  # id_query, 0, id_doc
             sample.append(
                 df_queries.loc[df_queries["id_left"] == qrel[0]]["text_left"].values[0]
             )
-            #time = datetime.now() - start
-            #print("Time 1: {}".format(time))
-            #start = datetime.now()
-            sample.append(self.__get_content(qrel[2]))
-           # time = datetime.now() - start
-            #print("Time 2: {}".format(time))
+            content = self.__get_content(qrel[2])
+            sample.append(content[0])
 
-            #start = datetime.now()
+            start = datetime.now()
             if irrelevant:
                 sample.append(
-                    self.__get_content(qrel[2])
+                    self.__get_content(content[1])[0]
                 )
-            #time = datetime.now() - start
-            #print("Time 3: {}".format(time))
             offset += 1
             batch.append(sample)
+        time = datetime.now() - start
         return batch, is_end, offset
 
     """

@@ -15,14 +15,14 @@ from utils.evaluation_helpers import evaluate_model
 
 
 def train(model, train_loader, batch_size):
+    start = datetime.now()
     while True:
-        start = datetime.now()
         train_batch, is_end = train_loader.generate_train_batch(batch_size)
-        time = datetime.now() - start
-        print("Batch generation time: {}".format(time), flush=True)
         _ = model.train(train_batch)
         if is_end:
             break
+    time = datetime.now() - start
+    print("Training time: {}".format(time), flush=True)
     return model.get_loss("train")
 
 
@@ -35,6 +35,7 @@ def train(model, train_loader, batch_size):
 def validate(
     model_params, model, train_loader, batch_size, docs_filename, valid_metric=None
 ):
+    start = datetime.now()
     while True:
         validation_batch, is_end = train_loader.generate_valid_batch(
             batch_size, irrelevant=True, force_keep=True
@@ -42,7 +43,10 @@ def validate(
         _ = model.validate(validation_batch)
         if is_end:
             break
+    time = datetime.now() - start
+    print("Validation[1] time: {}".format(time), flush=True)
 
+    start = datetime.now()
     metric = None
     if valid_metric is not None:
         eval_loader = dataset.evaluation_loader.EvaluationLoader(
@@ -54,6 +58,8 @@ def validate(
             model_params, model, eval_loader, [valid_metric], dump=False
         )
     train_loader.unload_all()
+    time = datetime.now() - start
+    print("Validation[2] time: {}".format(time), flush=True)
     return model.get_loss("valid"), metric
 
 
@@ -134,8 +140,20 @@ def train_and_validate(args, model, model_params, train_loader):
         start = datetime.now()
         print("Training, epoch #", e)
         train_loss = train(model, train_loader, batch_size)
+        save_checkpoint(model, model_params["model_checkpoint_pth"], e)
+        
         valid_loss, valid_metric = validate(
             model_params, model, train_loader, batch_size, args.docs, args.valid_metric
+        )
+        
+        best_metric = save_model_by_param(
+            model_params["model_pth"],
+            model,
+            valid_metric[args.valid_metric],
+            best_metric,
+            "IR metric: {}".format(args.valid_metric),
+            e,
+            max,
         )
         writer.add_scalars(
             model_params["model_name"],
@@ -148,17 +166,8 @@ def train_and_validate(args, model, model_params, train_loader):
             },
             e,
         )
-        best_metric = save_model_by_param(
-            model_params["model_pth"],
-            model,
-            valid_metric[args.valid_metric],
-            best_metric,
-            "IR metric: {}".format(args.valid_metric),
-            e,
-            max,
-        )
+        
 
-        save_checkpoint(model, model_params["model_checkpoint_pth"], e)
         model.reset_loss("train")
         model.reset_loss("valid")
         time = datetime.now() - start
@@ -179,6 +188,7 @@ def run(args, model_params):
         reg_lambda=model_params["reg_lambda"],
         drop_prob=model_params["drop_prob"],
         fembeddings=args.embeddings,
+        fwords = args.words,
         qmax_len=args.qmax_len,
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,

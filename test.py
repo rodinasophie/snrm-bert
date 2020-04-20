@@ -38,6 +38,7 @@ def run(args, model_params):
         reg_lambda=model_params["reg_lambda"],
         drop_prob=model_params["drop_prob"],
         fembeddings=args.embeddings,
+        fwords = args.words,
         qmax_len=args.qmax_len,
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,

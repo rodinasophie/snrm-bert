@@ -59,7 +59,10 @@ class EvaluationLoader:
         self.docs_file.seek(self.doc_offset) 
             
         for _ in range(self.doc_offset, end):
-            doc_id, doc = self.docs_file.readline().rstrip().split("\t", 1)
+            l = self.docs_file.readline().rstrip().split("\t")
+            if len(l) == 2:
+                l.append("")
+            doc_id, _, doc = l 
             doc_ids.append(doc_id)
             docs.append(doc)
 

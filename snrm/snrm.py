@@ -6,28 +6,48 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch
 from datetime import datetime
-
+import re
 # TODO: use built-in embedding layers?
 
 
 class Embeddings:
-    def __init__(self, emb_file, is_stub):
+    def __build_emb_list(self, word_file, emb_file):
+        self.model = fasttext.load_model(emb_file)
+        self.dim = self.model.get_dimension() if not self.is_stub else 300
+        word_ids = open(word_file, "r", encoding="utf-8")
+        self.word_embeddings = []
+        i = 0
+        for line in word_ids:
+            word_id, word = line.rstrip().split("\t")
+            self.word_embeddings.append(self.model[word])
+            assert i == int(word_id)
+            i += 1
+        print("Word_id to embedding is built", flush=True)
+
+
+    def __init__(self, emb_file, word_file, is_stub):
         self.is_stub = is_stub
         if not is_stub:
-            self.model = fasttext.load_model(emb_file)
-
-    def matrix(self, text, max_len):
-        start = datetime.now()
-        words = text.split()
+            self.__build_emb_list(word_file, emb_file)
+            
+    def matrix(self, text, max_len, fasttext=False):
+        words = text.split(" ")
         matrix = np.empty(())
-        dim = self.model.get_dimension() if not self.is_stub else 300
-        
+        dim = self.dim
+
         matrix = np.zeros((max_len, dim))
         for i in range(min(len(words), max_len)):
-            matrix[i] = (
-                self.model[words[i]] if not self.is_stub else np.random.choice(100, dim)
-            )
-        print("Matrix build time: {}".format(datetime.now() - start))
+            if words[i] == '':
+                continue
+            if not fasttext:
+                matrix[i] = (
+                    self.word_embeddings[int(words[i])] if not self.is_stub else np.random.choice(100, dim)
+                )
+            else:
+                matrix[i] = (
+                    self.model[words[i]] if not self.is_stub else np.random.choice(100, dim)
+                )
+
         return matrix
 
 
@@ -40,6 +60,7 @@ class SNRM:
     def __init__(
         self,
         fembeddings,
+        fwords,
         learning_rate=5e-5,
         batch_size=32,
         layers=[300, 100, 5000],
@@ -60,7 +81,7 @@ class SNRM:
         self.validation_steps = 0
 
         self.layers = layers
-        self.embeddings = Embeddings(fembeddings, is_stub=is_stub)
+        self.embeddings = Embeddings(fembeddings, fwords, is_stub=is_stub)
         self.autoencoder = Autoencoder(layers, drop_prob=drop_prob)
 
         self.criterion = nn.MarginRankingLoss(margin=1.0)
@@ -77,17 +98,19 @@ class SNRM:
 
         self.autoencoder.to(self.device)
 
+
     def __build_emb_input(self, batch, qmax_len, dmax_len):
         queries = []
         docs1 = []
         docs2 = []
-
+        
         for triple in batch:
             q, d1, d2 = triple
-            queries.append(self.embeddings.matrix(q, max_len=qmax_len))
-            docs1.append(self.embeddings.matrix(d1, max_len=dmax_len))
-            docs2.append(self.embeddings.matrix(d2, max_len=dmax_len))
+            queries.append(self.embeddings.matrix(q, max_len = qmax_len, fasttext = True))
+            docs1.append(self.embeddings.matrix(d1, max_len = dmax_len))
+            docs2.append(self.embeddings.matrix(d2, max_len = dmax_len))
         return np.asarray(queries), np.asarray(docs1), np.asarray(docs2)
+
 
     def __reshape2_4d(self, tensor):
         return (
@@ -108,7 +131,6 @@ class SNRM:
         )
         # zero the parameter gradients
         self.optimizer.zero_grad()
-
         # forward + backward + optimize
         q_out = self.autoencoder(self.__reshape2_4d(queries).to(self.device))
         d1_out = self.autoencoder(self.__reshape2_4d(docs1).to(self.device))
@@ -124,12 +146,13 @@ class SNRM:
 
         target = torch.ones(1).to(self.device)
         loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term
+
         loss.mean().backward()
         self.optimizer.step()
 
-        self.training_loss += loss.mean()
+        self.training_loss += loss.mean().item()
         self.training_steps += 1
-        return loss.mean()
+        return loss.mean().item()
 
     def validate(self, batch):
         self.autoencoder.eval()
@@ -148,9 +171,9 @@ class SNRM:
         target = torch.ones(1).to(self.device)
         loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term
 
-        self.validation_loss += loss.mean()
+        self.validation_loss += loss.mean().item()
         self.validation_steps += 1
-        return loss.mean()
+        return loss.mean().item()
 
     def reset_loss(self, loss):
         if loss == "train":
