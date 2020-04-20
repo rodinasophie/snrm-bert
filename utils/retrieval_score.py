@@ -20,7 +20,7 @@ class RetrievalScore:
         self.retrieval_score = dict()
         while offset < queries_len:
             queries_id, queries = eval_loader.generate_queries(size=batch_size)
-            qreprs = model.evaluate_repr(queries).detach().numpy()
+            qreprs = model.evaluate_repr(queries)
             for qrepr, q in zip(qreprs, queries_id):
                 self.retrieval_score[str(q)] = self.__retrieval_score_for_query(
                     qrepr, index

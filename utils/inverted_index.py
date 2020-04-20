@@ -55,7 +55,7 @@ def build_inverted_index(batch_size, model, eval_loader, iidx_file, dump=False):
     offset = 0
     while offset < docs_len:
         doc_ids, docs = eval_loader.generate_docs(size=batch_size)
-        repr = model.evaluate_repr(docs).detach().numpy()
+        repr = model.evaluate_repr(docs)
         inverted_index.construct(doc_ids, repr)
         offset += batch_size
     if dump:

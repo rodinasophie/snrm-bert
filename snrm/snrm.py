@@ -7,46 +7,41 @@ import torch.optim as optim
 import torch
 from datetime import datetime
 import re
+
 # TODO: use built-in embedding layers?
 
 
 class Embeddings:
     def __build_emb_list(self, word_file, emb_file):
-        self.model = fasttext.load_model(emb_file)
+        if not self.is_stub:
+            self.model = fasttext.load_model(emb_file)
         self.dim = self.model.get_dimension() if not self.is_stub else 300
         word_ids = open(word_file, "r", encoding="utf-8")
         self.word_embeddings = []
         i = 0
         for line in word_ids:
             word_id, word = line.rstrip().split("\t")
-            self.word_embeddings.append(self.model[word])
+            self.word_embeddings.append(
+                self.model[word]
+                if not self.is_stub
+                else np.random.choice(100, self.dim)
+            )
             assert i == int(word_id)
             i += 1
         print("Word_id to embedding is built", flush=True)
 
-
     def __init__(self, emb_file, word_file, is_stub):
         self.is_stub = is_stub
-        if not is_stub:
-            self.__build_emb_list(word_file, emb_file)
-            
-    def matrix(self, text, max_len, fasttext=False):
+        self.__build_emb_list(word_file, emb_file)
+
+    def matrix(self, text, max_len):
         words = text.split(" ")
         matrix = np.empty(())
-        dim = self.dim
-
-        matrix = np.zeros((max_len, dim))
+        matrix = np.zeros((max_len, self.dim))
         for i in range(min(len(words), max_len)):
-            if words[i] == '':
+            if words[i] == "":
                 continue
-            if not fasttext:
-                matrix[i] = (
-                    self.word_embeddings[int(words[i])] if not self.is_stub else np.random.choice(100, dim)
-                )
-            else:
-                matrix[i] = (
-                    self.model[words[i]] if not self.is_stub else np.random.choice(100, dim)
-                )
+            matrix[i] = self.word_embeddings[int(words[i])]
 
         return matrix
 
@@ -98,19 +93,17 @@ class SNRM:
 
         self.autoencoder.to(self.device)
 
-
     def __build_emb_input(self, batch, qmax_len, dmax_len):
         queries = []
         docs1 = []
         docs2 = []
-        
+
         for triple in batch:
             q, d1, d2 = triple
-            queries.append(self.embeddings.matrix(q, max_len = qmax_len, fasttext = True))
-            docs1.append(self.embeddings.matrix(d1, max_len = dmax_len))
-            docs2.append(self.embeddings.matrix(d2, max_len = dmax_len))
+            queries.append(self.embeddings.matrix(q, max_len=qmax_len))
+            docs1.append(self.embeddings.matrix(d1, max_len=dmax_len))
+            docs2.append(self.embeddings.matrix(d2, max_len=dmax_len))
         return np.asarray(queries), np.asarray(docs1), np.asarray(docs2)
-
 
     def __reshape2_4d(self, tensor):
         return (
@@ -200,7 +193,7 @@ class SNRM:
             d_m = np.expand_dims(d_m, axis=0)
             d_out = self.autoencoder(self.__reshape2_4d(d_m).to(self.device))
             repr_tensor[i] = d_out[:, 0, :, :]
-        return repr_tensor
+        return repr_tensor.detach().numpy()
 
     def save(self, filename):
         print("Saving model to ", filename)

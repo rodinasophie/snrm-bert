@@ -19,13 +19,7 @@ import numpy as np
 
 class TrainLoader:
     def __init__(
-        self,
-        docs,
-        train_queries,
-        train_qrels,
-        valid_queries,
-        valid_qrels,
-        save_mem,
+        self, docs, train_queries, train_qrels, valid_queries, valid_qrels, save_mem,
     ):
         self.train_queries = train_queries
         self.train_qrels = train_qrels
@@ -55,7 +49,7 @@ class TrainLoader:
                 l.append("")
             doc_id, irr_doc_id, doc = l
             self.docs_dict[doc_id] = (doc, irr_doc_id)
-        
+
         self.docs_len = len(self.docs_dict)
         self.docs_file.close()
         print("Documents are loaded in train_loader")
@@ -131,7 +125,6 @@ class TrainLoader:
         self.is_validset_loaded = False
         print("Validation set is released.")
 
-
     """
         General function for batch generation.
     """
@@ -150,14 +143,10 @@ class TrainLoader:
             content = self.__get_content(qrel[2])
             sample.append(content[0])
 
-            start = datetime.now()
             if irrelevant:
-                sample.append(
-                    self.__get_content(content[1])[0]
-                )
+                sample.append(self.__get_content(content[1])[0])
             offset += 1
             batch.append(sample)
-        time = datetime.now() - start
         return batch, is_end, offset
 
     """
@@ -212,7 +201,6 @@ class TrainLoader:
             self.valid_offset = 0
 
         return batch, is_end
-
 
     """
         Return valid queries ref.

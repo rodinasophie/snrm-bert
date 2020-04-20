@@ -38,14 +38,16 @@ def run(args, model_params):
         reg_lambda=model_params["reg_lambda"],
         drop_prob=model_params["drop_prob"],
         fembeddings=args.embeddings,
-        fwords = args.words,
+        fwords=args.words,
         qmax_len=args.qmax_len,
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,
     )
 
     # Load model from file
-    eval_loader = dataset.evaluation_loader.EvaluationLoader(args.test_docs, args.test_queries, args.test_qrels)
+    eval_loader = dataset.evaluation_loader.EvaluationLoader(
+        args.docs, args.test_queries, args.test_qrels
+    )
     model.load(model_params["model_pth"])
 
     # Evaluate model
@@ -67,6 +69,7 @@ def run(args, model_params):
 def setup(module):
     global dataset
     dataset = __import__(module, fromlist=["object"])
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
