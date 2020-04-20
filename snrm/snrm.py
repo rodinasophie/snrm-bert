@@ -45,6 +45,19 @@ class Embeddings:
 
         return matrix
 
+    def matrix2(self, texts, max_len):
+        matrix = np.empty(())
+        matrix = np.zeros((len(texts), max_len, self.dim))
+        for t in range(len(texts)):
+            words = texts[t].split(" ")
+            for i in range(min(len(words), max_len)):
+                if words[i] == "":
+                    continue
+                matrix[t][i] = self.word_embeddings[int(words[i])]
+
+        return matrix
+
+
 
 """ Main class implementing SNRM model.
 
@@ -93,6 +106,19 @@ class SNRM:
 
         self.autoencoder.to(self.device)
 
+    def __build_emb_input2(self, batch, qmax_len, dmax_len):
+        queries = [b[0] for b in batch]
+        docs1 = [b[1] for b in batch]
+        docs2 = [b[2] for b in batch]
+
+
+        q_emb = self.embeddings.matrix2(queries, max_len=qmax_len)
+        doc1_emb = self.embeddings.matrix2(docs1, max_len=dmax_len)
+        doc2_emb = self.embeddings.matrix2(docs2, max_len=dmax_len)
+
+        return q_emb, doc1_emb, doc2_emb
+
+
     def __build_emb_input(self, batch, qmax_len, dmax_len):
         queries = []
         docs1 = []
@@ -119,9 +145,11 @@ class SNRM:
 
     def train(self, batch):
         self.autoencoder.train()
-        queries, docs1, docs2 = self.__build_emb_input(
+        start = datetime.now()
+        queries, docs1, docs2 = self.__build_emb_input2(
             batch, self.qmax_len, self.dmax_len
         )
+        print("Embedding is built for {}".format(datetime.now() - start))
         # zero the parameter gradients
         self.optimizer.zero_grad()
         # forward + backward + optimize
@@ -149,7 +177,7 @@ class SNRM:
 
     def validate(self, batch):
         self.autoencoder.eval()
-        queries, docs1, docs2 = self.__build_emb_input(
+        queries, docs1, docs2 = self.__build_emb_input2(
             batch, self.qmax_len, self.dmax_len
         )
 

@@ -62,6 +62,8 @@ class EvaluationLoader:
             l = self.docs_file.readline().rstrip().split("\t")
             if len(l) == 2:
                 l.append("")
+            if len(l) == 1:
+                print("Single: ", l, flush=True)
             doc_id, _, doc = l 
             doc_ids.append(doc_id)
             docs.append(doc)

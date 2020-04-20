@@ -2,11 +2,11 @@
     "dataset": "msmarco",
     "docs": "/home/mrim/data/collection/msmarco/documents/msmarco-docs-irr-words.tsv",
     "words": "/home/mrim/data/collection/msmarco/documents/msmarco-words.tsv",
-    "train_queries": "/home/mrim/data/collection/msmarco/documents/train/msmarco-doctrain-queries.tsv",
+    "train_queries": "/home/mrim/data/collection/msmarco/documents/train/msmarco-doctrain-queries-words.tsv",
     "train_qrels": "/home/mrim/data/collection/msmarco/documents/train/msmarco-doctrain-qrels.tsv",
-    "valid_queries": "/home/mrim/data/collection/msmarco/documents/dev/msmarco-docdev-queries.tsv",
+    "valid_queries": "/home/mrim/data/collection/msmarco/documents/dev/msmarco-docdev-queries-words.tsv",
     "valid_qrels": "/home/mrim/data/collection/msmarco/documents/dev/msmarco-docdev-qrels.tsv",
-    "test_queries": "/home/mrim/data/collection/msmarco/documents/test/msmarco-test2019-queries.tsv",
+    "test_queries": "/home/mrim/data/collection/msmarco/documents/test/msmarco-test2019-queries-words.tsv",
     "test_qrels": "/home/mrim/data/collection/msmarco/documents/test/2019qrels-docs.txt",
     "embeddings": "/home/mrim/data/embeddings/cc.ru.300.bin",
     "summary_folder": "./snrm-marco-docs-summary/",
@@ -31,7 +31,7 @@
     "models_folder": "./msmarco_docs_models/",
     "models": [
         {
-            "batch_size": 32,
+            "batch_size": 64,
             "learning_rate": 5e-5,
             "layers": [
                 300,

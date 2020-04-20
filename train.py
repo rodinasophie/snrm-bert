@@ -15,14 +15,18 @@ from utils.evaluation_helpers import evaluate_model
 
 
 def train(model, train_loader, batch_size):
-    start = datetime.now()
+    i = 0
     while True:
+        start = datetime.now()
         train_batch, is_end = train_loader.generate_train_batch(batch_size)
+        time = datetime.now() - start
+        print("Batch generation time: {}".format(time), flush=True)
         _ = model.train(train_batch)
+        i += 1
         if is_end:
             break
-    time = datetime.now() - start
-    print("Training time: {}".format(time), flush=True)
+        if i == 10:
+            break
     return model.get_loss("train")
 
 
@@ -36,12 +40,16 @@ def validate(
     model_params, model, train_loader, batch_size, docs_filename, valid_metric=None
 ):
     start = datetime.now()
+    i = 0
     while True:
         validation_batch, is_end = train_loader.generate_valid_batch(
             batch_size, irrelevant=True, force_keep=True
         )
         _ = model.validate(validation_batch)
+        i += 1
         if is_end:
+            break
+        if i == 10:
             break
     time = datetime.now() - start
     print("Validation[1] time: {}".format(time), flush=True)
