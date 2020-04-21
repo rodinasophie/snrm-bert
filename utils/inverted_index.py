@@ -51,13 +51,11 @@ class InvertedIndex:
 def build_inverted_index(batch_size, model, eval_loader, iidx_file, dump=False):
     print("Building inverted index started...")
     inverted_index = InvertedIndex(iidx_file)
-    docs_len = eval_loader.docs_length()
-    offset = 0
-    while offset < docs_len:
-        doc_ids, docs = eval_loader.generate_docs(size=batch_size)
+    is_end = False
+    while not is_end:
+        doc_ids, docs, is_end = eval_loader.generate_docs(batch_size)
         repr = model.evaluate_repr(docs)
         inverted_index.construct(doc_ids, repr)
-        offset += batch_size
     if dump:
         inverted_index.flush()
     print("Inverted index is built!")

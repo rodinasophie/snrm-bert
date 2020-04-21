@@ -3,6 +3,7 @@ from datetime import datetime
 import random
 import csv
 import numpy as np
+from .helper import load_docs
 
 """
     TrainLoader is responsible for triples generation
@@ -40,19 +41,7 @@ class TrainLoader:
     """
 
     def __load_docs(self, docs):
-        self.docs_file = open(docs, "rt", encoding="utf8")
-        self.docs_dict = dict()
-
-        for line in self.docs_file:
-            l = line.rstrip().split("\t")
-            if len(l) == 2:
-                l.append("")
-            doc_id, irr_doc_id, doc = l
-            self.docs_dict[doc_id] = (doc, irr_doc_id)
-
-        self.docs_len = len(self.docs_dict)
-        self.docs_file.close()
-        print("Documents are loaded in train_loader")
+        self.docs_dict, self.docs_len = load_docs(docs)
 
     """
         Efficiently searches for a doc_id in docs file.
@@ -202,6 +191,9 @@ class TrainLoader:
 
         return batch, is_end
 
+    def get_docs(self):
+        return self.docs_dict
+
     """
         Return valid queries ref.
     """
@@ -215,10 +207,10 @@ class TrainLoader:
     """
         Return qrels name.
     """
-    # FIXME: interface is asymmetric because of this function.
-    # But we store here qrels in data frame, but we need it in neighborhood module in pytrec_dict.
+
     def get_valid_qrels_name(self):
-        return self.valid_qrels
+        assert self.df_valid_qrels is not None, "validation qrels data frame is None"
+        return self.df_valid_qrels, self.valid_qrels
 
     """
         Unload all data from the memory.
@@ -228,6 +220,3 @@ class TrainLoader:
         if self.save_mem:
             self.__unload_validset()
             self.__unload_trainset()
-
-    def finalize(self):
-        self.docs_file.close()

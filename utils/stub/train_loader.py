@@ -17,13 +17,7 @@ import numpy as np
 
 class TrainLoader:
     def __init__(
-        self,
-        docs,
-        train_queries,
-        train_qrels,
-        valid_queries,
-        valid_qrels,
-        save_mem,
+        self, docs, train_queries, train_qrels, valid_queries, valid_qrels, save_mem,
     ):
         self.train_queries = train_queries
         self.train_qrels = train_qrels
@@ -135,7 +129,6 @@ class TrainLoader:
                         "text_right"
                     ]
                 )
-            offset += 1
             batch.append(sample)
         return batch, is_end, offset
 

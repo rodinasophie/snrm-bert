@@ -21,7 +21,6 @@
         "recall_100"
     ],
     "is_stub": 0,
-    "save_mem": 1,
     "rerun_if_exists": 0,
     "inverted_index": "inverted_index.csv",
     "retrieval_score": "retrieval_score.csv",

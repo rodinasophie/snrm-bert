@@ -15,17 +15,15 @@ class RetrievalScore:
     def evaluate(self, eval_loader, index, model, batch_size):
         if self.is_evaluated:
             return self.retrieval_score
-        queries_len = eval_loader.queries_length()
-        offset = 0
+        is_end = False
         self.retrieval_score = dict()
-        while offset < queries_len:
-            queries_id, queries = eval_loader.generate_queries(size=batch_size)
+        while not is_end:
+            queries_id, queries, is_end = eval_loader.generate_queries(batch_size)
             qreprs = model.evaluate_repr(queries)
             for qrepr, q in zip(qreprs, queries_id):
                 self.retrieval_score[str(q)] = self.__retrieval_score_for_query(
                     qrepr, index
                 )  # returns dict({doc_id:val})
-            offset += batch_size
         self.is_evaluated = True
         return self.retrieval_score
 

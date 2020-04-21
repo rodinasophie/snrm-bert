@@ -58,7 +58,6 @@ class Embeddings:
         return matrix
 
 
-
 """ Main class implementing SNRM model.
 
 """
@@ -107,17 +106,15 @@ class SNRM:
         self.autoencoder.to(self.device)
 
     def __build_emb_input2(self, batch, qmax_len, dmax_len):
-        queries = [b[0] for b in batch]
-        docs1 = [b[1] for b in batch]
-        docs2 = [b[2] for b in batch]
-
+        queries = batch[0]
+        docs1 = batch[1]
+        docs2 = batch[2]
 
         q_emb = self.embeddings.matrix2(queries, max_len=qmax_len)
         doc1_emb = self.embeddings.matrix2(docs1, max_len=dmax_len)
         doc2_emb = self.embeddings.matrix2(docs2, max_len=dmax_len)
 
         return q_emb, doc1_emb, doc2_emb
-
 
     def __build_emb_input(self, batch, qmax_len, dmax_len):
         queries = []

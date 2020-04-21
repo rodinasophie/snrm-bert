@@ -18,7 +18,7 @@ def train(model, train_loader, batch_size):
     i = 0
     while True:
         start = datetime.now()
-        train_batch, is_end = train_loader.generate_train_batch(batch_size)
+        train_batch, is_end = train_loader.generate_triple_batch(batch_size)
         time = datetime.now() - start
         print("Batch generation time: {}".format(time), flush=True)
         _ = model.train(train_batch)
@@ -36,15 +36,11 @@ def train(model, train_loader, batch_size):
 """
 
 
-def validate(
-    model_params, model, train_loader, batch_size, docs_filename, valid_metric=None
-):
+def validate(model_params, model, valid_loader, batch_size, valid_metric=None):
     start = datetime.now()
     i = 0
     while True:
-        validation_batch, is_end = train_loader.generate_valid_batch(
-            batch_size, irrelevant=True, force_keep=True
-        )
+        validation_batch, is_end = valid_loader.generate_triple_batch(batch_size)
         _ = model.validate(validation_batch)
         i += 1
         if is_end:
@@ -57,15 +53,9 @@ def validate(
     start = datetime.now()
     metric = None
     if valid_metric is not None:
-        eval_loader = dataset.evaluation_loader.EvaluationLoader(
-            docs=docs_filename,
-            df_queries=train_loader.get_valid_queries_ref(),
-            qrels=train_loader.get_valid_qrels_name(),
-        )
         metric = evaluate_model(
-            model_params, model, eval_loader, [valid_metric], dump=False
+            model_params, model, valid_loader, [valid_metric], dump=False
         )
-    train_loader.unload_all()
     time = datetime.now() - start
     print("Validation[2] time: {}".format(time), flush=True)
     return model.get_loss("valid"), metric
@@ -133,7 +123,7 @@ Training and validating the model.
 """
 
 
-def train_and_validate(args, model, model_params, train_loader):
+def train_and_validate(args, model, model_params, train_loader, valid_loader):
     batch_size = model_params["batch_size"]
     is_resumed, start_epoch = resume_model(
         model, model_params["model_checkpoint_pth"], args.rerun_if_exists, args.epochs
@@ -149,11 +139,11 @@ def train_and_validate(args, model, model_params, train_loader):
         print("Training, epoch #", e)
         train_loss = train(model, train_loader, batch_size)
         save_checkpoint(model, model_params["model_checkpoint_pth"], e)
-        
+
         valid_loss, valid_metric = validate(
-            model_params, model, train_loader, batch_size, args.docs, args.valid_metric
+            model_params, model, valid_loader, batch_size, args.valid_metric
         )
-        
+
         best_metric = save_model_by_param(
             model_params["model_pth"],
             model,
@@ -174,7 +164,6 @@ def train_and_validate(args, model, model_params, train_loader):
             },
             e,
         )
-        
 
         model.reset_loss("train")
         model.reset_loss("valid")
@@ -196,22 +185,23 @@ def run(args, model_params):
         reg_lambda=model_params["reg_lambda"],
         drop_prob=model_params["drop_prob"],
         fembeddings=args.embeddings,
-        fwords = args.words,
+        fwords=args.words,
         qmax_len=args.qmax_len,
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,
     )
-    train_loader = dataset.train_loader.TrainLoader(
-        args.docs,
-        args.train_queries,
-        args.train_qrels,
-        args.valid_queries,
-        args.valid_qrels,
-        save_mem=args.save_mem,
+
+    docs_dict = dataset.data_loader.load_docs(args.docs)
+
+    train_loader = dataset.data_loader.DataLoader(
+        args.train_queries, args.train_qrels, docs_dict,
     )
 
-    train_and_validate(args, model, model_params, train_loader)
-    train_loader.finalize()
+    valid_loader = dataset.data_loader.DataLoader(
+        args.valid_queries, args.valid_qrels, docs_dict,
+    )
+
+    train_and_validate(args, model, model_params, train_loader, valid_loader)
     print("Finished training and validating for {}".format(model_params["model_name"]))
 
 

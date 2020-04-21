@@ -44,10 +44,13 @@ def run(args, model_params):
         is_stub=args.is_stub,
     )
 
-    # Load model from file
-    eval_loader = dataset.evaluation_loader.EvaluationLoader(
-        args.docs, args.test_queries, args.test_qrels
+    docs_dict = dataset.data_loader.load_docs(args.docs)
+
+    eval_loader = dataset.data_loader.DataLoader(
+        args.test_queries, args.test_qrels, docs_dict,
     )
+
+    # Load model from file
     model.load(model_params["model_pth"])
 
     # Evaluate model
