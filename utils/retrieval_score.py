@@ -1,29 +1,43 @@
 import json
 from .helpers import dump
-
+from datetime import datetime
 
 class RetrievalScore:
     def __init__(self):
         self.retrieval_score = None
         self.is_evaluated = False
 
+    def estimate_sparsity(self, repres):
+        zero = 0
+        for i in range(len(repres)):
+            if repres[i] == 0.0:
+                zero += 1
+        return zero
+        
     """
         This function returns a dictionary, where each query has a correspondent
         relative documents with the corresponding score.
     """
 
     def evaluate(self, eval_loader, index, model, batch_size):
+        start = datetime.now()
         if self.is_evaluated:
             return self.retrieval_score
         is_end = False
         self.retrieval_score = dict()
+        counter = 0
         while not is_end:
             queries_id, queries, is_end = eval_loader.generate_queries(batch_size)
-            qreprs = model.evaluate_repr(queries)
+            qreprs = model.evaluate_repr(queries, input_type="queries")
             for qrepr, q in zip(qreprs, queries_id):
+                if counter < 3:
+                    print("Zero elements: ", self.estimate_sparsity(qrepr), len(qrepr), flush=True)
+                counter += 1
                 self.retrieval_score[str(q)] = self.__retrieval_score_for_query(
                     qrepr, index
                 )  # returns dict({doc_id:val})
+        time = datetime.now() - start
+        print("Retrieval score is built for ", time, flush = True)
         self.is_evaluated = True
         return self.retrieval_score
 
@@ -42,6 +56,10 @@ class RetrievalScore:
         relevant_docs = dict()
         for i in range(len(query_repr)):
             if query_repr[i] != 0.0:
+                try:
+                    docs = index.get_index()[i]
+                except KeyError:
+                    continue
                 docs = index.get_index()[i]
                 for j in range(len(docs)):
                     doc_id = str(docs[j][0])

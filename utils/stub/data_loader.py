@@ -94,7 +94,7 @@ class DataLoader:
 
         if self.query_offset == self.queries_len:
             is_end = True
-            self.qrels_offset = 0
+            self.query_offset = 0
         return np.asarray(query_ids), np.asarray(queries), is_end
 
     def __generate_unique_doc_ids(self):
@@ -138,3 +138,9 @@ class DataLoader:
 
     def generate_qrels(self):
         return read_qrels(self.qrels)
+
+    def reset(self):
+        self.local_docs_offset = 0
+        self.query_offset = 0
+        self.triple_offset = 0
+

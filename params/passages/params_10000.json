@@ -1,0 +1,150 @@
+{
+    "dataset": "msmarco",
+    "docs": "/home/mrim/data/collection/msmarco/passages/collection-irr-words.tsv",
+    "words": "/home/mrim/data/collection/msmarco/passages/words.tsv",
+    "train_queries": "/home/mrim/data/collection/msmarco/passages/train/queries-words.train.tsv",
+    "train_qrels": "/home/mrim/data/collection/msmarco/passages/train/qrels.train.tsv",
+    "test_queries": "/home/mrim/data/collection/msmarco/passages/dev/queries-words.dev.tsv",
+    "test_qrels": "/home/mrim/data/collection/msmarco/passages/dev/qrels.dev.tsv",
+    "valid_queries": "/home/mrim/data/collection/msmarco/passages/test/msmarco-test2019-queries-words.tsv",
+    "valid_qrels": "/home/mrim/data/collection/msmarco/passages/test/2019qrels-pass.txt",
+    "embeddings": "/home/mrim/data/embeddings/cc.en.300.bin",
+    "summary_folder": "./passages-summary/",
+    "qmax_len": 10,
+    "dmax_len": 300,
+    "epochs": 3,
+    "valid_metric": "P_20",
+    "test_metrics": [
+        "P_5",
+        "P_10",
+        "P_20",
+        "ndcg_cut_5",
+        "ndcg_cut_10",
+        "ndcg_cut_20",
+        "ndcg_cut_1000",
+        "map",
+        "recall_1000"
+    ],
+    "is_stub": 0,
+    "rerun_if_exists": 0,
+    "inverted_index": "inverted_index.csv",
+    "retrieval_score": "retrieval_score.csv",
+    "final_metrics": "final_metrics.csv",
+    "model_pth": "model.pth",
+    "model_checkpoint_pth": "model_checkpoint.pth",
+    "models_folder": "./passages-models/",
+    "models": [
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-9,
+            "drop_prob": 0
+	},
+	
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-9,
+            "drop_prob": 0.2
+	},
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-9,
+            "drop_prob": 0.4
+	},
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-8,
+            "drop_prob": 0
+	},
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-8,
+            "drop_prob": 0.2
+	},
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-8,
+            "drop_prob": 0.4
+	},
+
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-7,
+            "drop_prob": 0
+	},
+
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-7,
+            "drop_prob": 0.2
+	},
+	{
+            "batch_size": 32,
+            "learning_rate": 1e-4,
+            "layers": [
+                300,
+                300,
+		500,
+                10000
+            ],
+            "reg_lambda": 1e-7,
+            "drop_prob": 0.4
+	}
+
+    ]
+}

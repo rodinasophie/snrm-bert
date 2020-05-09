@@ -22,7 +22,7 @@ def check_rebuild(model_params):
 
 
 def run(args, model_params):
-    print("\nRunning training for {} ...".format(model_params["model_name"]))
+    print("\nRunning testing for {} ...".format(model_params["model_name"]))
 
     rebuild_inverted_index, rebuild_retrieval_score = check_rebuild(model_params)
 
@@ -49,7 +49,6 @@ def run(args, model_params):
     eval_loader = dataset.data_loader.DataLoader(
         args.test_queries, args.test_qrels, docs_dict,
     )
-
     # Load model from file
     model.load(model_params["model_pth"])
 

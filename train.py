@@ -4,9 +4,9 @@ from snrm import SNRM
 import json
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
-from utils.helpers import manage_model_params, path_exists
+from utils.helpers import manage_model_params, path_exists, filename
 from utils.evaluation_helpers import evaluate_model
-
+from utils.sparsity import check_sparsity
 
 """
     Train the model during one epoch over the whole train set.
@@ -15,18 +15,20 @@ from utils.evaluation_helpers import evaluate_model
 
 
 def train(model, train_loader, batch_size):
-    i = 0
+    start = datetime.now()
+    valid_finished = False
+    counter = 0
     while True:
-        start = datetime.now()
         train_batch, is_end = train_loader.generate_triple_batch(batch_size)
-        time = datetime.now() - start
-        print("Batch generation time: {}".format(time), flush=True)
         _ = model.train(train_batch)
-        i += 1
+        if counter % 1000 == 0:
+            print("Train loss: ", model.get_loss("train"), flush = True)
+        counter += 1
         if is_end:
             break
-        if i == 10:
-            break
+    time = datetime.now() - start
+    print("Training time: {}".format(time), flush=True)
+
     return model.get_loss("train")
 
 
@@ -36,29 +38,21 @@ def train(model, train_loader, batch_size):
 """
 
 
-def validate(model_params, model, valid_loader, batch_size, valid_metric=None):
+def validate(model_params, model, valid_loader, batch_size):
     start = datetime.now()
-    i = 0
+    counter = 0
     while True:
         validation_batch, is_end = valid_loader.generate_triple_batch(batch_size)
         _ = model.validate(validation_batch)
-        i += 1
+        if counter % 1000 == 0:
+            print("Valid loss: ", model.get_loss("valid"), flush = True)
+        counter += 1
         if is_end:
             break
-        if i == 10:
-            break
     time = datetime.now() - start
-    print("Validation[1] time: {}".format(time), flush=True)
+    print("Validation time: {}".format(time), flush=True)
 
-    start = datetime.now()
-    metric = None
-    if valid_metric is not None:
-        metric = evaluate_model(
-            model_params, model, valid_loader, [valid_metric], dump=False
-        )
-    time = datetime.now() - start
-    print("Validation[2] time: {}".format(time), flush=True)
-    return model.get_loss("valid"), metric
+    return model.get_loss("valid")
 
 
 """
@@ -77,7 +71,7 @@ def save_model_by_param(
         model.save(model_pth)
 
     best_eval = eval_func(new_param, best_param)
-    if new_param == best_eval and best_eval != best_param:
+    if new_param == best_eval:
         print(
             "Better model is found: {} = {}, epoch = {}".format(
                 new_param, param_name, e
@@ -95,6 +89,9 @@ def save_model_by_param(
 
 
 def save_checkpoint(model, path, epoch):
+    print("Saving checkpoint for epoch #", epoch)
+    fname, ext = filename(path) 
+    model.save_checkpoint(fname + "_epoch" + str(epoch) + ext, epoch)
     model.save_checkpoint(path, epoch)
 
 
@@ -134,44 +131,40 @@ def train_and_validate(args, model, model_params, train_loader, valid_loader):
     writer = SummaryWriter(args.summary_folder)
 
     best_metric = None
+    final_dmean = 0
     for e in epochs:
         start = datetime.now()
         print("Training, epoch #", e)
         train_loss = train(model, train_loader, batch_size)
+        valid_loss = validate(model_params, model, valid_loader, batch_size)
+
+        writer.add_scalars(model_params["model_name"],{"Validation loss": valid_loss,"Training loss": train_loss}, e)
+
         save_checkpoint(model, model_params["model_checkpoint_pth"], e)
-
-        valid_loss, valid_metric = validate(
-            model_params, model, valid_loader, batch_size, args.valid_metric
-        )
-
-        best_metric = save_model_by_param(
-            model_params["model_pth"],
-            model,
-            valid_metric[args.valid_metric],
-            best_metric,
-            "IR metric: {}".format(args.valid_metric),
-            e,
-            max,
-        )
-        writer.add_scalars(
-            model_params["model_name"],
-            {
-                "Training loss": train_loss,
-                "Validation loss": valid_loss,
-                "IR metric({})".format(args.valid_metric): valid_metric[
-                    args.valid_metric
-                ],
-            },
-            e,
-        )
-
+        model.save(model_params["model_pth"])
+        print("Checking sparsity for epoch #", e, flush=True)
+        qmean, dmean = check_sparsity(model, valid_loader, batch_size)
+        print("Mean sparsity for epoch {}: queries sparsity = {}, docs sparsity = {}".format(e, qmean, dmean), flush=True)
+        final_dmean = dmean
+        
         model.reset_loss("train")
         model.reset_loss("valid")
+        
         time = datetime.now() - start
         print("Execution time: ", time)
-        print("Train loss: ", train_loss)
-        print("Valid loss: ", valid_loss)
-        print("IR metric: ", valid_metric)
+    
+    if final_dmean < 4500:
+        print("Sparsity ratio is low, returning", flush=True)
+        writer.close()
+        return
+
+    start = datetime.now()
+    metrics = evaluate_model(
+        model_params, model, valid_loader, args.test_metrics, dump=False
+    )
+    time = datetime.now() - start
+    print("Evaluation time: {}".format(time),flush=True)
+    print("IR metrics: ", metrics)
 
     writer.close()
 

@@ -8,17 +8,21 @@
     "valid_qrels": "stub_data/valid/qrels",
     "test_queries": "stub_data/test/queries.csv",
     "test_qrels": "stub_data/test/qrels",
-    "embeddings": "/home/mrim/data/embeddings/cc.ru.300.bin",
+    "embeddings": "/home/mrim/data/embeddings/cc.en.300.bin",
     "summary_folder": "./snrm-summary/",
-    "qmax_len": 100,
-    "dmax_len": 1000,
-    "epochs": 3,
-    "valid_metric": "P_20",
+    "qmax_len": 5,
+    "dmax_len": 20,
+    "epochs": 100,
     "test_metrics": [
-        "map",
+        "P_5",
+        "P_10",
         "P_20",
+        "ndcg_cut_5",
+        "ndcg_cut_10",
         "ndcg_cut_20",
-        "recall_100"
+        "ndcg_cut_1000",
+        "map",
+        "recall_1000"
     ],
     "is_stub": 1,
     "rerun_if_exists": 1,
@@ -30,37 +34,16 @@
     "models_folder": "./models/",
     "models": [
         {
-            "batch_size": 3,
-            "learning_rate": 5e-5,
+            "batch_size": 4,
+            "learning_rate": 1e-4,
             "layers": [
                 300,
-                200,
+                100,
+		500,
                 5000
             ],
-            "reg_lambda": 1e-7,
-            "drop_prob": 0.6
-        },
-        {
-            "batch_size": 3,
-            "learning_rate": 3e-5,
-            "layers": [
-                300,
-                200,
-                3000
-            ],
-            "reg_lambda": 1e-7,
-            "drop_prob": 0.6
-        },
-        {
-            "batch_size": 3,
-            "learning_rate": 1e-5,
-            "layers": [
-                300,
-                200,
-                1000
-            ],
-            "reg_lambda": 1e-7,
-            "drop_prob": 0.8
+            "reg_lambda": 1e-3,
+            "drop_prob": 0.2
         }
     ]
 }

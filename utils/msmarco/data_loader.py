@@ -9,13 +9,11 @@ def load_docs(docs):
 
     for line in docs_file:
         l = line.rstrip().split("\t")
-        if len(l) == 2:
-            l.append("")
         doc_id, irr_doc_id, doc = l
         docs_dict[doc_id] = (doc, irr_doc_id)
 
     docs_file.close()
-    print("Documents are loaded in train_loader")
+    print("Documents are loaded in data_loader")
     return docs_dict
 
 
@@ -44,7 +42,7 @@ class DataLoader:
         )
         self.queries_len = self.df_queries.shape[0]
 
-        self.df_qrels = pd.read_csv(self.qrels, sep=" ", na_filter=False, header=None)
+        self.df_qrels = pd.read_csv(self.qrels, sep=' ', index_col = False, na_filter=False, header=None)
         self.qrels_len = self.df_qrels.shape[0]
 
     def __get_content(self, doc_id):
@@ -65,11 +63,10 @@ class DataLoader:
                     "text_left"
                 ].values[0]
             )
-            content = self.__get_content(qrel[2])
+            content = self.__get_content(str(qrel[2]))
             docs_1.append(content[0])
 
-            docs_2.append(self.__get_content(content[1])[0])
-            offset += 1
+            docs_2.append(self.__get_content(str(content[1]))[0])
         self.triple_offset = new_offset
 
         if is_end:
@@ -92,7 +89,7 @@ class DataLoader:
 
         if self.query_offset == self.queries_len:
             is_end = True
-            self.qrels_offset = 0
+            self.query_offset = 0
         return np.asarray(query_ids), np.asarray(queries), is_end
 
     def __generate_unique_doc_ids(self):
@@ -115,7 +112,7 @@ class DataLoader:
 
         docs = []
         for i in range(self.local_docs_offset, end):
-            docs.append(self.docs_dict[self.local_doc_ids[i]][0])
+            docs.append(self.docs_dict[str(self.local_doc_ids[i])][0])
         doc_ids = self.local_doc_ids[self.local_docs_offset : end]
 
         self.local_docs_offset = end
@@ -132,3 +129,11 @@ class DataLoader:
 
     def generate_qrels(self):
         return read_qrels(self.qrels)
+    
+    def reset(self):
+        self.local_docs_offset = 0
+        self.query_offset = 0
+        self.triple_offset = 0
+
+
+        
