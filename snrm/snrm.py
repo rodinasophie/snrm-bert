@@ -5,29 +5,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch
+from datetime import datetime
+import random
+import re
 
-
-# TODO: use built-in embedding layers?
-
-
-class Embeddings:
-    def __init__(self, emb_file, is_stub):
-        self.is_stub = is_stub
-        if not is_stub:
-            self.model = fasttext.load_model(emb_file)
-
-    def matrix(self, text, max_len):
-        words = text.split()
-        matrix = np.empty(())
-        dim = self.model.get_dimension() if not self.is_stub else 300
-
-        matrix = np.zeros((max_len, dim))
-        for i in range(min(len(words), max_len)):
-            matrix[i] = (
-                self.model[words[i]] if not self.is_stub else np.random.choice(100, dim)
-            )
-        return matrix
-
+from .embeddings.fasttext_embeddings import FastTextEmbeddings
+from .embeddings.bert_embeddings import BertEmbeddings
 
 """ Main class implementing SNRM model.
 
@@ -38,6 +21,7 @@ class SNRM:
     def __init__(
         self,
         fembeddings,
+        fwords,
         learning_rate=5e-5,
         batch_size=32,
         layers=[300, 100, 5000],
@@ -47,6 +31,7 @@ class SNRM:
         dmax_len=1000,
         is_stub=False,
     ):
+        random.seed(43)
         self.reg_lambda = reg_lambda
         self.qmax_len = qmax_len
         self.dmax_len = dmax_len
@@ -57,42 +42,46 @@ class SNRM:
         self.training_steps = 0
         self.validation_steps = 0
 
-        self.layers = layers
-        self.embeddings = Embeddings(fembeddings, is_stub=is_stub)
-        self.autoencoder = Autoencoder(layers, drop_prob=drop_prob)
+        if fembeddings.startswith("bert"):
+            parts = fembeddings.split(
+                "."
+            )  # bert.cat -> ['bert', 'cat'] or bert.sum -> ['bert', 'sum']
+            self.embeddings = BertEmbeddings(fwords, parts[1])
+        else:
+            self.embeddings = FastTextEmbeddings(fembeddings, fwords, is_stub=is_stub)
+
+        emb_len = self.embeddings.get_emb_len()
+        print("Embedding length, EMB_LEN =", emb_len, flush=True)
+
+        self.layers = [emb_len] + layers
+        self.autoencoder = Autoencoder(self.layers, drop_prob=drop_prob)
 
         self.criterion = nn.MarginRankingLoss(margin=1.0)
-        self.optimizer = optim.SGD(
-            self.autoencoder.parameters(), lr=learning_rate, momentum=0.9
-        )
+        self.optimizer = optim.Adam(self.autoencoder.parameters(), lr=learning_rate)
 
-        self.device = 'cpu'#torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("Device to use:", self.device)
 
-        #if torch.cuda.device_count() > 1:
-        #    print("Let's use", torch.cuda.device_count(), "GPUs!")
-        #    self.autoencoder = nn.DataParallel(self.autoencoder)
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            self.autoencoder = nn.DataParallel(self.autoencoder)
 
         self.autoencoder.to(self.device)
 
     def __build_emb_input(self, batch, qmax_len, dmax_len):
-        queries = []
-        docs1 = []
-        docs2 = []
+        queries = batch[0]
+        docs1 = batch[1]
+        docs2 = batch[2]
 
-        for triple in batch:
-            q, d1, d2 = triple
-            queries.append(self.embeddings.matrix(q, max_len=qmax_len))
-            docs1.append(self.embeddings.matrix(d1, max_len=dmax_len))
-            docs2.append(self.embeddings.matrix(d2, max_len=dmax_len))
-        return np.asarray(queries), np.asarray(docs1), np.asarray(docs2)
+        q_emb = self.embeddings.matrix(queries, max_len=qmax_len)
+        doc1_emb = self.embeddings.matrix(docs1, max_len=dmax_len)
+        doc2_emb = self.embeddings.matrix(docs2, max_len=dmax_len)
+
+        return q_emb, doc1_emb, doc2_emb
 
     def __reshape2_4d(self, tensor):
-        return (
-            torch.from_numpy(tensor)
-            .float()
-            .view(1, tensor.shape[2], tensor.shape[0], tensor.shape[1])
-        )
+        tensor = np.asarray([tensor[i].transpose() for i in range(tensor.shape[0])])
+        return torch.from_numpy(tensor).float()
 
     """
     An input format for training: query, doc1, doc2, y
@@ -106,12 +95,10 @@ class SNRM:
         )
         # zero the parameter gradients
         self.optimizer.zero_grad()
-
         # forward + backward + optimize
         q_out = self.autoencoder(self.__reshape2_4d(queries).to(self.device))
         d1_out = self.autoencoder(self.__reshape2_4d(docs1).to(self.device))
         d2_out = self.autoencoder(self.__reshape2_4d(docs2).to(self.device))
-
         reg_term = (
             torch.cat((q_out, d1_out, d2_out), dim=1)
             .sum(dim=1, keepdim=True)
@@ -119,15 +106,14 @@ class SNRM:
         )
         x1 = (q_out * d1_out).sum(dim=1, keepdim=True).to(self.device)
         x2 = (q_out * d2_out).sum(dim=1, keepdim=True).to(self.device)
-
-        target = torch.ones(1).to(self.device)
+        target = torch.ones(q_out.shape[0]).to(self.device)
         loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term
         loss.mean().backward()
         self.optimizer.step()
 
-        self.training_loss += loss.mean()
+        self.training_loss += loss.mean().item()
         self.training_steps += 1
-        return loss.mean()
+        return loss.mean().item()
 
     def validate(self, batch):
         self.autoencoder.eval()
@@ -143,12 +129,12 @@ class SNRM:
         x1 = (q_out * d1_out).sum(dim=1, keepdim=True)
         x2 = (q_out * d2_out).sum(dim=1, keepdim=True)
 
-        target = torch.ones(1).to(self.device)
+        target = torch.ones(q_out.shape[0]).to(self.device)
         loss = self.criterion(x1, x2, target) + self.reg_lambda * reg_term
 
-        self.validation_loss += loss.mean()
+        self.validation_loss += loss.mean().item()
         self.validation_steps += 1
-        return loss.mean()
+        return loss.mean().item()
 
     def reset_loss(self, loss):
         if loss == "train":
@@ -168,14 +154,14 @@ class SNRM:
         else:
             Exception("No loss found: ", loss)
 
-    def evaluate_repr(self, batch):
-        repr_tensor = torch.empty(batch.shape[0], self.layers[-1])
-        for i in range(batch.shape[0]):
-            d_m = self.embeddings.matrix(batch[i][1], max_len=self.dmax_len)
-            d_m = np.expand_dims(d_m, axis=0)
-            d_out = self.autoencoder(self.__reshape2_4d(d_m).to(self.device))
-            repr_tensor[i] = d_out[:, 0, :, :]
-        return repr_tensor
+    def evaluate_repr(self, batch, input_type):
+        max_len = self.qmax_len if input_type == "queries" else self.dmax_len
+        emb = self.embeddings.matrix(batch, max_len=max_len)
+
+        self.autoencoder.eval()
+        d_out = self.autoencoder(self.__reshape2_4d(emb).to(self.device))
+
+        return d_out[:, :, 0].detach()
 
     def save(self, filename):
         print("Saving model to ", filename)
@@ -186,3 +172,26 @@ class SNRM:
         print("Uploading model to ", filename)
         self.autoencoder.load_state_dict(torch.load(filename))
         print("Uploaded.")
+
+    def save_checkpoint(self, filename, epoch):
+        torch.save(
+            {
+                "epoch": epoch,
+                "model_state_dict": self.autoencoder.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+            },
+            filename,
+        )
+
+    """
+        Uploads the old model and returns a new epoch to start training from.
+    """
+
+    def load_checkpoint(self, filename, epochs_num):
+        checkpoint = torch.load(filename)
+        epoch = checkpoint["epoch"]
+        if epoch < epochs_num - 1:
+            self.autoencoder.load_state_dict(checkpoint["model_state_dict"])
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            return epoch + 1, True
+        return 0, False

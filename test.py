@@ -1,23 +1,36 @@
 import argparse
 import json
-from utils import EvaluationLoader
 from snrm import SNRM
-from utils.inverted_index import build_inverted_index
-from utils.retrieval_score import RetrievalScore
-from utils.pytrec_evaluator import MetricsEvaluator, read_qrels
-from utils.manage_model import manage_model_params
-
-"""
-Testing and evaluating the model.
-"""
+from utils.helpers import manage_model_params
+from utils.evaluation_helpers import evaluate_model
+from utils.helpers import path_exists, load_file
 
 
-def evaluate_metrics(predicted_qrels, qrels, metrics):
-    evaluator = MetricsEvaluator(predicted_qrels, qrels)
-    return evaluator.evaluate(metrics)
+def check_rebuild(model_params):
+    rebuild_inverted_index = True
+    rebuild_retrieval_score = True
+
+    if path_exists(model_params["inverted_index"]) and not args.rerun_if_exists:
+        print("Inverted index already exists, won't be rebuild.")
+        rebuild_inverted_index = False
+
+    if path_exists(model_params["retrieval_score"]) and not args.rerun_if_exists:
+        print("Retrieval score already exists, won't be rebuild.")
+        rebuild_retrieval_score = False
+
+    return rebuild_inverted_index, rebuild_retrieval_score
 
 
 def run(args, model_params):
+    print("\nRunning testing for {} ...".format(model_params["model_name"]))
+
+    rebuild_inverted_index, rebuild_retrieval_score = check_rebuild(model_params)
+
+    if not rebuild_inverted_index and not rebuild_retrieval_score:
+        metrics = load_file(model_params["final_metrics"])
+        print(metrics)
+        return
+
     model = SNRM(
         learning_rate=model_params["learning_rate"],
         batch_size=model_params["batch_size"],
@@ -25,32 +38,39 @@ def run(args, model_params):
         reg_lambda=model_params["reg_lambda"],
         drop_prob=model_params["drop_prob"],
         fembeddings=args.embeddings,
+        fwords=args.words,
         qmax_len=args.qmax_len,
         dmax_len=args.dmax_len,
         is_stub=args.is_stub,
     )
+
+    docs_dict = dataset.data_loader.load_docs(args.docs)
+
+    eval_loader = dataset.data_loader.DataLoader(
+        args.test_queries, args.test_qrels, docs_dict,
+    )
     # Load model from file
-    eval_loader = EvaluationLoader(args.test_docs, args.test_queries)
     model.load(model_params["model_pth"])
 
-    # Build inverted index
-    index = build_inverted_index(
-        model_params["batch_size"], model, eval_loader, model_params["inverted_index"]
+    # Evaluate model
+    # If we need to rebuild inverted index, we also need to rebuild the retrieval score.
+    # If inverted index is built and we are on this stage, we need to rebuild the retrieval score anyway.
+    metrics = evaluate_model(
+        model_params,
+        model,
+        eval_loader,
+        args.test_metrics,
+        dump=True,
+        rebuild_inverted_index=rebuild_inverted_index,
     )
 
-    # Estimate retrieval score for each document and each query
-    retrieval_score = RetrievalScore()
-    predicted_qrels = retrieval_score.evaluate(
-        eval_loader, index, model, model_params["batch_size"]
-    )
-    retrieval_score.dump(model_params["retrieval_score"])
-    print(predicted_qrels)
-
-    # Evaluate retrieval metrics
-    metrics = evaluate_metrics(
-        predicted_qrels, read_qrels(args.test_qrels), args.metrics
-    )
     print(metrics)
+    print("Finished testing for {}".format(model_params["model_name"]))
+
+
+def setup(module):
+    global dataset
+    dataset = __import__(module, fromlist=["object"])
 
 
 if __name__ == "__main__":
@@ -65,6 +85,7 @@ if __name__ == "__main__":
         parser.add_argument("--" + key, default=val)
     args = parser.parse_args()
 
+    setup(".".join(["utils", args.dataset]))
     models_to_train = list(args.models)
     for model in models_to_train:
         manage_model_params(args, model)
