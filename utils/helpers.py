@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 
+
 def estimate_sparsity(repres):
     zero = 0
     nans = 0
@@ -17,7 +18,7 @@ def manage_model_params(args, model):
     model["model_name"] = "-".join(
         [
             "snrm-model",
-            "layers",
+            args.embeddings if args.embeddings.startswith("bert") else "fasttext",
             "_".join([str(layer) for layer in model["layers"]]),
             "batch",
             str(model["batch_size"]),
@@ -44,20 +45,22 @@ def manage_model_params(args, model):
 def path_exists(path):
     return os.path.exists(path)
 
+
 def join(dir, file):
     return os.path.join(dir, file)
-
 
 
 def filename(path):
     filename, file_extension = os.path.splitext(path)
     return filename, file_extension
 
+
 def dump(dict_to_store, filename):
     json_file = json.dumps(dict_to_store)
     f = open(filename, "w")
     f.write(json_file)
     f.close()
+
 
 def list_files(path):
     return [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]

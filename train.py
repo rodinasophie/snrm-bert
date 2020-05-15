@@ -16,13 +16,12 @@ from utils.sparsity import check_sparsity
 
 def train(model, train_loader, batch_size):
     start = datetime.now()
-    valid_finished = False
     counter = 0
     while True:
         train_batch, is_end = train_loader.generate_triple_batch(batch_size)
         _ = model.train(train_batch)
         if counter % 1000 == 0:
-            print("Train loss: ", model.get_loss("train"), flush = True)
+            print("Train loss: ", model.get_loss("train"), flush=True)
         counter += 1
         if is_end:
             break
@@ -45,7 +44,7 @@ def validate(model_params, model, valid_loader, batch_size):
         validation_batch, is_end = valid_loader.generate_triple_batch(batch_size)
         _ = model.validate(validation_batch)
         if counter % 1000 == 0:
-            print("Valid loss: ", model.get_loss("valid"), flush = True)
+            print("Valid loss: ", model.get_loss("valid"), flush=True)
         counter += 1
         if is_end:
             break
@@ -90,7 +89,7 @@ def save_model_by_param(
 
 def save_checkpoint(model, path, epoch):
     print("Saving checkpoint for epoch #", epoch)
-    fname, ext = filename(path) 
+    fname, ext = filename(path)
     model.save_checkpoint(fname + "_epoch" + str(epoch) + ext, epoch)
     model.save_checkpoint(path, epoch)
 
@@ -130,41 +129,42 @@ def train_and_validate(args, model, model_params, train_loader, valid_loader):
     epochs = range(start_epoch, args.epochs)
     writer = SummaryWriter(args.summary_folder)
 
-    best_metric = None
-    final_dmean = 0
     for e in epochs:
         start = datetime.now()
         print("Training, epoch #", e)
         train_loss = train(model, train_loader, batch_size)
         valid_loss = validate(model_params, model, valid_loader, batch_size)
 
-        writer.add_scalars(model_params["model_name"],{"Validation loss": valid_loss,"Training loss": train_loss}, e)
+        writer.add_scalars(
+            model_params["model_name"],
+            {"Validation loss": valid_loss, "Training loss": train_loss},
+            e,
+        )
 
         save_checkpoint(model, model_params["model_checkpoint_pth"], e)
         model.save(model_params["model_pth"])
         print("Checking sparsity for epoch #", e, flush=True)
         qmean, dmean = check_sparsity(model, valid_loader, batch_size)
-        print("Mean sparsity for epoch {}: queries sparsity = {}, docs sparsity = {}".format(e, qmean, dmean), flush=True)
-        final_dmean = dmean
-        
+        print(
+            "Mean sparsity for epoch {}: queries sparsity = {}, docs sparsity = {}".format(
+                e, qmean, dmean
+            ),
+            flush=True,
+        )
+        if dmean > 0.95 * model_params["layers"][-1] and e % 5 == 0:
+            start1 = datetime.now()
+            metrics = evaluate_model(
+                model_params, model, valid_loader, args.test_metrics, dump=False
+            )
+            time1 = datetime.now() - start1
+            print("Evaluation time: {}".format(time1), flush=True)
+            print("IR metrics: ", metrics)
+
         model.reset_loss("train")
         model.reset_loss("valid")
-        
+
         time = datetime.now() - start
         print("Execution time: ", time)
-    
-    if final_dmean < 4500:
-        print("Sparsity ratio is low, returning", flush=True)
-        writer.close()
-        return
-
-    start = datetime.now()
-    metrics = evaluate_model(
-        model_params, model, valid_loader, args.test_metrics, dump=False
-    )
-    time = datetime.now() - start
-    print("Evaluation time: {}".format(time),flush=True)
-    print("IR metrics: ", metrics)
 
     writer.close()
 

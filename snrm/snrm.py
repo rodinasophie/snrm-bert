@@ -9,43 +9,8 @@ from datetime import datetime
 import random
 import re
 
-# TODO: use built-in embedding layers?
-
-
-class Embeddings:
-    def __build_emb_list(self, word_file, emb_file):
-        if not self.is_stub:
-            self.model = fasttext.load_model(emb_file)
-        self.dim = self.model.get_dimension() if not self.is_stub else 300
-        word_ids = open(word_file, "r", encoding="utf-8")
-        self.word_embeddings = []
-        i = 0
-        for line in word_ids:
-            word_id, word = line.rstrip().split("\t")
-            self.word_embeddings.append(
-                self.model[word]
-                if not self.is_stub
-                else np.random.normal(0, 1.0, self.dim)
-            )
-            assert i == int(word_id)
-            i += 1
-        print("Word_id to embedding is built", flush=True)
-
-    def __init__(self, emb_file, word_file, is_stub):
-        self.is_stub = is_stub
-        self.__build_emb_list(word_file, emb_file)
-
-    def matrix2(self, texts, max_len):
-        matrix = np.zeros((len(texts), max_len, self.dim))
-        for t in range(len(texts)):
-            words = texts[t].split(" ")
-            for i in range(min(len(words), max_len)):
-                if words[i] == "":
-                    continue
-                matrix[t][i] = self.word_embeddings[int(words[i])]
-
-        return matrix
-
+from .embeddings.fasttext_embeddings import FastTextEmbeddings
+from .embeddings.bert_embeddings import BertEmbeddings
 
 """ Main class implementing SNRM model.
 
@@ -77,14 +42,22 @@ class SNRM:
         self.training_steps = 0
         self.validation_steps = 0
 
-        self.layers = layers
-        self.embeddings = Embeddings(fembeddings, fwords, is_stub=is_stub)
-        self.autoencoder = Autoencoder(layers, drop_prob=drop_prob)
+        if fembeddings.startswith("bert"):
+            parts = fembeddings.split(
+                "."
+            )  # bert.cat -> ['bert', 'cat'] or bert.sum -> ['bert', 'sum']
+            self.embeddings = BertEmbeddings(fwords, parts[1])
+        else:
+            self.embeddings = FastTextEmbeddings(fembeddings, fwords, is_stub=is_stub)
+
+        emb_len = self.embeddings.get_emb_len()
+        print("Embedding length, EMB_LEN =", emb_len, flush=True)
+
+        self.layers = [emb_len] + layers
+        self.autoencoder = Autoencoder(self.layers, drop_prob=drop_prob)
 
         self.criterion = nn.MarginRankingLoss(margin=1.0)
-        self.optimizer = optim.Adam(
-            self.autoencoder.parameters(), lr=learning_rate
-        )
+        self.optimizer = optim.Adam(self.autoencoder.parameters(), lr=learning_rate)
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print("Device to use:", self.device)
@@ -95,22 +68,20 @@ class SNRM:
 
         self.autoencoder.to(self.device)
 
-    def __build_emb_input2(self, batch, qmax_len, dmax_len):
+    def __build_emb_input(self, batch, qmax_len, dmax_len):
         queries = batch[0]
         docs1 = batch[1]
         docs2 = batch[2]
 
-        q_emb = self.embeddings.matrix2(queries, max_len=qmax_len)
-        doc1_emb = self.embeddings.matrix2(docs1, max_len=dmax_len)
-        doc2_emb = self.embeddings.matrix2(docs2, max_len=dmax_len)
+        q_emb = self.embeddings.matrix(queries, max_len=qmax_len)
+        doc1_emb = self.embeddings.matrix(docs1, max_len=dmax_len)
+        doc2_emb = self.embeddings.matrix(docs2, max_len=dmax_len)
 
         return q_emb, doc1_emb, doc2_emb
-
 
     def __reshape2_4d(self, tensor):
         tensor = np.asarray([tensor[i].transpose() for i in range(tensor.shape[0])])
         return torch.from_numpy(tensor).float()
-        
 
     """
     An input format for training: query, doc1, doc2, y
@@ -119,7 +90,7 @@ class SNRM:
 
     def train(self, batch):
         self.autoencoder.train()
-        queries, docs1, docs2 = self.__build_emb_input2(
+        queries, docs1, docs2 = self.__build_emb_input(
             batch, self.qmax_len, self.dmax_len
         )
         # zero the parameter gradients
@@ -146,7 +117,7 @@ class SNRM:
 
     def validate(self, batch):
         self.autoencoder.eval()
-        queries, docs1, docs2 = self.__build_emb_input2(
+        queries, docs1, docs2 = self.__build_emb_input(
             batch, self.qmax_len, self.dmax_len
         )
 
@@ -183,14 +154,13 @@ class SNRM:
         else:
             Exception("No loss found: ", loss)
 
-    
     def evaluate_repr(self, batch, input_type):
         max_len = self.qmax_len if input_type == "queries" else self.dmax_len
-        emb = self.embeddings.matrix2(batch, max_len=max_len)
-        
+        emb = self.embeddings.matrix(batch, max_len=max_len)
+
         self.autoencoder.eval()
         d_out = self.autoencoder(self.__reshape2_4d(emb).to(self.device))
-        
+
         return d_out[:, :, 0].detach()
 
     def save(self, filename):
