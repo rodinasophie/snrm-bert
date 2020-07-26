@@ -100,5 +100,9 @@ To customize the model to your own data, you need to add your own folder to `uti
 
 ## References
 [1] Hamed  Zamani,  Mostafa  Dehghani,  W.  Croft,  Erik  Learned-Miller,  and  Jaap  Kamps.“From Neural Re-Ranking to Neural Ranking: Learning a Sparse Representation for In-verted Indexing”. In: Oct. 2018, pp. 497–506.doi:10.1145/3269206.3271800.
+
+
 [2] Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. “Bert: Pre-trainingof deep bidirectional transformers for language understanding”. In:arXiv preprint arXiv:1810.04805(2018).
+
+
 [3] Tri Nguyen, Mir Rosenberg, Xia Song, Jianfeng Gao, Saurabh Tiwary, Rangan Majumder,and Li Deng. “MS MARCO: a human-generated machine reading comprehension dataset”.In: (2016).
