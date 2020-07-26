@@ -31,7 +31,8 @@ The final minor stage:
 ### Parameters
 All `train.py`, `test.py` and `statistics.py` files need a unified `.json` parameter's input file.
 Here is an example of the file:
-```{
+```
+{
     "dataset": "msmarco",
     "docs": "PATH/TO/DOCUMENTS",
     "words": "PATH/TO/VOCABULARY",
@@ -78,7 +79,8 @@ Here is an example of the file:
             ],
             "reg_lambda": 1e-9,
             "drop_prob": 0
-        }] ```
+        }]
+ ```
 
 
 ## Usage
