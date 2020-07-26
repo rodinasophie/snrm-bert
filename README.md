@@ -84,19 +84,13 @@ Here is an example of the file:
 ## Usage
 
 To run the training stage:
-```
-python train.py --params=param_file
-```
+`python train.py --params=param_file`
 
 To run the test stage:
-```
-python test.py --params=param_file
-```
+`python test.py --params=param_file`
 
 To run the statistics(estimate sparsity):
-```
-python statistics.py --params=param_file
-```
+`python statistics.py --params=param_file`
 
 ## Customization
 
