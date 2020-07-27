@@ -1,7 +1,7 @@
-# Standalone Neural Ranking Model with Bert modification
+# Standalone Neural Ranking Model with BERT modification
 
 ## Motivation
-The main idea of that repo is to extend the SNR model proposed by H.Zamani et al. [1] with the Bert[2] embeddings and apply the model to the MSMARCO dataset[3].
+The main idea of that repo is to extend the SNR model proposed by H.Zamani et al. [1] with the BERT[2] embeddings and apply the model to the MSMARCO dataset[3].
 
 
 ## Code structure
@@ -42,7 +42,7 @@ Here is an example of the file:
     "test_qrels": "PATH/TO/TEST/QRELS",
     "valid_queries": "PATH/TO/VALIDATION/QUERIES",
     "valid_qrels": "PATH/TO/VALIDATION/QRELS",
-    "embeddings": "PATH/TO/EMBEDDINGS",
+    "embeddings": "PATH/TO/EMBEDDINGS", # "bert" - to use BERT embeddings
     "summary_folder": "./passages-summary/",
     "qmax_len": 10,
     "dmax_len": 300,
